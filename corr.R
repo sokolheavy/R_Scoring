@@ -13,7 +13,7 @@ round(res, 2)
 cor(my_data, use = "complete.obs")
 
 
-# type:“upper”, “lower”, “full” - method of visualization
+# type:â€œupperâ€, â€œlowerâ€, â€œfullâ€ - method of visualization
 #order = "hclust",
 #tl.col - text label color
 #tl.srt - text label string rotation(angle)
@@ -74,4 +74,5 @@ corrtable<-tableCorrMatrix(res2$r, res2$P)
 resultcorr<-subset(corrtable,abs(cor)>0.5)
 resultcorr[,order()]
 
-
+#order by 1,2
+resultcorr[order(resultcorr[,1],resultcorr[,2]),] 
