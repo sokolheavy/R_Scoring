@@ -20,8 +20,7 @@ file<-data
 
 ##create loop for BR
 begin_ncol<-ncol(file)
-i<-2
-while (i<=begin_ncol){
+for (i in 2:begin_ncol){
   #t1-aggregate file for create BR
   t1<-aggregate(. ~ file[,i], data = file[c(names(file)[1],names(file)[i])],
                 FUN = function(x) c(good_all = sum(x),all = length(x)))[,c(1,2)]
@@ -43,7 +42,6 @@ while (i<=begin_ncol){
   
   #recall first column,cauth automatically programe calls it "file$target"
   names(file)[1]<-"target"
-  i<-i+1
 }
 
 str(file)
