@@ -48,37 +48,32 @@ while (i<=begin_ncol){
 
 str(file)
 
-  plot_list = list()
-  plot_list[[1]]<-""
-  j<-2
-  
-  
-  pdf("var_plot6.pdf",width = 8,height=12,paper='special')
-  for (j in 2:6) {
+  pdf("var_plot.pdf",width = 8,height=12,paper='special')
+  for (j in 2:begin_ncol) {
     plot1_hist<-ggplot(file, aes(file[,j])) + 
       geom_bar(aes(y = (..count..)/sum(..count..)))+
       scale_y_continuous(labels=scales::percent) +
       geom_text(aes( y = ((..count..)/sum(..count..)),label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.01) +
       theme(axis.text.x = element_text(angle=10, vjust=0.9),
-            plot.title = element_text(size = 22, face = "bold",hjust = -0.1, vjust=4), 
             plot.margin = unit(c(1,1,1,1), "cm") ) + 
       labs( y = "", x = "")
-      #ggtitle(names(file)[j])
     
-    plot2_line<-ggplot(file, aes(x=file[,j],y=file[,j+11],group=1)) + 
+    plot2_line<-ggplot(file, aes(x=file[,j],y=file[,j+begin_ncol-1],group=1)) + 
       geom_line(color="dodgerblue4",size=1)+
       geom_point() +
+      theme(axis.text.x = element_text(angle=10, vjust=0.9),
+            plot.margin = unit(c(1,1,1,1), "cm") ) + 
       labs( y = "", x = "")+
       ylim(c(0, 0.3))
     stable <- desc_statby(iris, measure.var = "Sepal.Length",
                           grps = "Species")
     stable <- stable[, c("Species", "length", "mean", "sd")]
-    # Ãðàôèê ñî ñâîäíîé òàáëèöåé, òåìà "medium orange" (ñðåäíèé îðàíæåâûé)
+    # Ð“Ñ€Ð°Ñ„Ð¸Ðº ÑÐ¾ ÑÐ²Ð¾Ð´Ð½Ð¾Ð¹ Ñ‚Ð°Ð±Ð»Ð¸Ñ†ÐµÐ¹, Ñ‚ÐµÐ¼Ð° "medium orange" (ÑÑ€ÐµÐ´Ð½Ð¸Ð¹ Ð¾Ñ€Ð°Ð½Ð¶ÐµÐ²Ñ‹Ð¹)
     stable.p <- ggtexttable(stable, rows = NULL, 
                             theme = ttheme("mOrange"))
     
     text <- paste("
-                     ",names(file)[j],"     ","IV=",i, sep = " ")
+                     ",names(file)[j],"     ","IV=",j, sep = " ")
     title <- ggparagraph(text = text, face = "italic", size = 25, color = "black")
     print(ggarrange(title,plot1_hist, plot2_line, stable.p , 
                     ncol = 1, nrow = 4,
@@ -87,22 +82,6 @@ str(file)
   }
   
   dev.off()
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  ggplot(file, aes(x=file[,2],y=file[,2+12],group=1)) + 
-    geom_line(color="dodgerblue4",size=1)+
-    geom_point() +
-    labs( y = "", x = "")+
-    ylim(c(0, 0.9))
-
 
 
 
