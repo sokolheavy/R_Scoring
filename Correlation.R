@@ -90,7 +90,7 @@ chart.Correlation(new_data, histogram=TRUE, pch=10)
 
 
 
-##------------------example in buro data------------------##
+##------------------Data from buro------------------------------##
 example<-read.csv2("WOE.csv", sep=";",colClasses="numeric",dec=".")
 
 #take away first column("target")
