@@ -46,40 +46,33 @@ for (i in 2:begin_ncol){
 
 str(file)
 
-  pdf("var_plot.pdf",width = 8,height=12,paper='special')
-  for (j in 2:begin_ncol) {
-    plot1_hist<-ggplot(file, aes(file[,j])) + 
-      geom_bar(aes(y = (..count..)/sum(..count..)))+
-      scale_y_continuous(labels=scales::percent) +
-      geom_text(aes( y = ((..count..)/sum(..count..)),label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.01) +
-      theme(axis.text.x = element_text(angle=10, vjust=0.9),
-            plot.margin = unit(c(1,1,1,1), "cm") ) + 
-      labs( y = "", x = "")
-    
-    plot2_line<-ggplot(file, aes(x=file[,j],y=file[,j+begin_ncol-1],group=1)) + 
-      geom_line(color="dodgerblue4",size=1)+
-      geom_point() +
-      theme(axis.text.x = element_text(angle=10, vjust=0.9),
-            plot.margin = unit(c(1,1,1,1), "cm") ) + 
-      labs( y = "", x = "")+
-      ylim(c(0, 0.3))
-    stable <- desc_statby(iris, measure.var = "Sepal.Length",
-                          grps = "Species")
-    stable <- stable[, c("Species", "length", "mean", "sd")]
-    # График со сводной таблицей, тема "medium orange" (средний оранжевый)
-    stable.p <- ggtexttable(stable, rows = NULL, 
-                            theme = ttheme("mOrange"))
-    
-    text <- paste("
-                     ",names(file)[j],"     ","IV=",j, sep = " ")
-    title <- ggparagraph(text = text, face = "italic", size = 25, color = "black")
-    print(ggarrange(title,plot1_hist, plot2_line, stable.p , 
-                    ncol = 1, nrow = 4,
-                    heights = c(0.08,0.3, 0.2, 0.2)))
-    
-  }
+ pdf("var_plot11.pdf",width = 8,height=12,paper='special')
+for (j in 2:begin_ncol) {
+  plot1_hist<-ggplot(file, aes(file[,j])) + 
+    geom_bar(aes(y = (..count..)/sum(..count..)))+
+    scale_y_continuous(labels=scales::percent) +
+    geom_text(aes( y = ((..count..)/sum(..count..)),label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.01) +
+    theme(axis.text.x = element_text(angle=10, vjust=0.9),
+          plot.margin = unit(c(1,1,1,1), "cm") ) + 
+    labs( y = "", x = "")
   
-  dev.off()
+  plot2_line<-ggplot(file, aes(x=file[,j],y=file[,j+begin_ncol-1],group=1)) + 
+    geom_line(color="dodgerblue4",size=1)+
+    geom_point() +
+    theme(axis.text.x = element_text(angle=10, vjust=0.9),
+          plot.margin = unit(c(1,1,1,1), "cm") ) + 
+    labs( y = "", x = "")+
+    ylim(c(0, 0.3))
+  
+  text <- paste("
+                ",names(file)[j], sep = " ")
+  title <- ggparagraph(text = text, face = "italic", size = 25, color = "black")
+  print(ggarrange(title,plot1_hist, plot2_line, 
+                  ncol = 1, nrow = 3,
+                  heights = c(0.05,0.3, 0.2)))
+  
+}
 
+dev.off()
 
 
