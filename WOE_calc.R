@@ -43,4 +43,7 @@ for (i in 2:begin_ncol){
   names(file)[1]<-"target"
 }
 
-str(file) 
+#rewrite for log regresion
+data<-file[,c(1,ceiling(ncol(file)/2):ncol(file))]
+names(data)<-names(file)[1:ceiling(ncol(file)/2)]
+str(data) 
