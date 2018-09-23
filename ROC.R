@@ -104,7 +104,7 @@ lines(c(0,1),c(0,1))
 text(0.6,0.2,paste("Gini=", round(gini,4), sep=""), cex=1.4)
 title("ROC Curve")
 
-#Build plot with 3 roc curve 
+#build plot with 3 roc curve 
 
 gini1  <- (slot(performance(pred1, measure = "auc"),"y.values")[[1]])*2 - 1
 gini2  <- (slot(performance(pred2, measure = "auc"),"y.values")[[1]])*2 - 1
@@ -158,24 +158,22 @@ print(opt.cut(roc_perf, pred1))
 #False negative rate = y-1 = TP/P -1 = TP/(TP+FN) - (TP+FN)/(TP+FN) = -TN/(TP+FN) 
 #specificity = 1-x[[ind]]= 1-FP/N=1- FP/(TN+FP)=((TN+FP)/(TN+FP)) - FP/(TN+FP)= TN/(TN+FP) = TN/N - False positive rate(specificity)
 
+#Add predictive mark
+data$result <- ifelse(file$target_predict_1 < 0.9256235, 0, 1)
 
-#Limiting to a FPR: partial ROC curve
-pROC = function(pred, fpr.stop){
-  perf <- performance(pred,"tpr","fpr")
-  for (iperf in seq_along(perf@x.values)){
-    ind = which(perf@x.values[[iperf]] <= fpr.stop)
-    perf@y.values[[iperf]] = perf@y.values[[iperf]][ind]
-    perf@x.values[[iperf]] = perf@x.values[[iperf]][ind]
-  }
-  return(perf)
-} 
+aggregate_table_fact <- aggregate(. ~ data[,2], data = data[c(names(data)[1],names(data)[2])],
+                             FUN = function(x) c(good = sum(x),
+                                                 bad=(length(x)-sum(x))))[,c(1,2)]
 
-pROC(pred1,0.15)
-proc_perf = pROC(pred1, fpr.stop=0.2)
-plot(proc_perf)
-abline(a=0, b= 1)
+#log(x) will produce NaN any time x is less than zero(calculating 'length(x)-sum(x)' we have '-' func 'log' see that and returns error
+aggregate_table_fact<-cbind(aggregate_table_fact[,1],data.frame(aggregate_table_fact[,2]))
+names(aggregate_table_fact)<-c( "Month_passport" ,"good, #","bad, #")
+
+table<-data.frame(row.names = aggregate_table_fact[,1],aggregate_table_fact[,2:3])
+str(table)
+
+chisq.test(table)
 
 
 cost.perf = performance(pred1, "cost", cost.fp = 2, cost.fn = 1)
 pred1@cutoffs[[1]][which.min(cost.perf@y.values[[1]])]
-
