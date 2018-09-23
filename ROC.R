@@ -104,7 +104,7 @@ lines(c(0,1),c(0,1))
 text(0.6,0.2,paste("Gini=", round(gini,4), sep=""), cex=1.4)
 title("ROC Curve")
 
-#build plot with 3 roc curve 
+#Build plot with 3 roc curve 
 
 gini1  <- (slot(performance(pred1, measure = "auc"),"y.values")[[1]])*2 - 1
 gini2  <- (slot(performance(pred2, measure = "auc"),"y.values")[[1]])*2 - 1
