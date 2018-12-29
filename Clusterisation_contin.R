@@ -13,9 +13,9 @@ plot(hept_pca)
 exp_percent <- summary(hept_pca)$importance[2, ]
 qplot(y = exp_percent, x = names(exp_percent)) + 
   geom_bar(stat = 'identity') +
-  labs(x = "Ãëàâíûå êîìïîíåíòû",
-       y = "Äîëè äèñïåñèè",
-       title = "Äîëè äèñïåðñèè, îáúÿñíÿåìûå ãëàâíûìè êîìïîíåíòàìè \n (áåç ïðåäâàðèòåëüíîé ñòàíäàðòèçàöèè)")
+  labs(x = "ÃƒÃ«Ã Ã¢Ã­Ã»Ã¥ ÃªÃ®Ã¬Ã¯Ã®Ã­Ã¥Ã­Ã²Ã»",
+       y = "Ã„Ã®Ã«Ã¨ Ã¤Ã¨Ã±Ã¯Ã¥Ã±Ã¨Ã¨",
+       title = "Ã„Ã®Ã«Ã¨ Ã¤Ã¨Ã±Ã¯Ã¥Ã°Ã±Ã¨Ã¨, Ã®Ã¡ÃºÃ¿Ã±Ã­Ã¿Ã¥Ã¬Ã»Ã¥ Ã£Ã«Ã Ã¢Ã­Ã»Ã¬Ã¨ ÃªÃ®Ã¬Ã¯Ã®Ã­Ã¥Ã­Ã²Ã Ã¬Ã¨ \n (Ã¡Ã¥Ã§ Ã¯Ã°Ã¥Ã¤Ã¢Ã Ã°Ã¨Ã²Ã¥Ã«Ã¼Ã­Ã®Ã© Ã±Ã²Ã Ã­Ã¤Ã Ã°Ã²Ã¨Ã§Ã Ã¶Ã¨Ã¨)")
 
 # 4
 # func, that add column with pca, that takes more than 90% information
@@ -65,4 +65,27 @@ sapply(corr, function(x) x==1)
 
 
 is_multicol(test_data)
+is_multicol(test_data)
+
+
+
+sapply(corr, function(x) x==1)
+
+sapply(1:ncol(corr), 
+       function(x) corr[-x,x])
+
+class(corr)
+isTRUE(all.equal(0.1+0.05, 0.15))
+
+corr[corr[,1]==1,1]
+iris[iris$Species == 'virginica', 1:4])['median']
+v_corr <- sort(as.vector(unlist(c(subset(corr_table,cor==1|cor==-1)[,-3]))))
+
+TEST$NEW <- ifelse(apply(TEST,1,function(x) any(x==1|x==6)),101,NA)
+
+pre_cor <- setNames(data.frame(sapply(1:ncol(corr), function(x) corr[-x,x])), names(corr))
+
+sapply(pre_cor,function(y) any(y==1|y==-1))
+
+isTRUE(all.equal(0.1+0.05, 0.15))
 
