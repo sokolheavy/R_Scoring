@@ -1,3 +1,28 @@
+
+-------------------Intro-------------------
+  
+# Pearson correlation - parametric(X, Y - norm distribution)
+# Kendall tau and Spearman rho - non-parametric(rank-based correlation coefficients)
+
+# cor() - computes the correlation coefficient.
+# cor.test() - returns both the correlation coefficient and the significance level(or p-value) of the correlation .
+
+cor(x, y, method = c("pearson", "kendall", "spearman"))
+cor.test(x, y, method=c("pearson", "kendall", "spearman"))
+
+# Are the data from each of the 2 variables (x, y) follow a normal distribution?
+# Shapiro-Wilk normality test –>  shapiro.test()
+
+library(ggpubr)
+ggscatter(df, x = "wt", y = "mpg",
+          add = "reg.line",                                 # Add regression line
+          conf.int = TRUE,                                  # Add confidence interval
+          add.params = list(color = "blue",
+                            fill = "lightgray")
+)+
+  stat_cor(method = "pearson", label.x = 3, label.y = 30)  # Add correlation coefficient
+
+
 data("mtcars")
 my_data <- mtcars[, c(1,3,4,5,6,7)]
 # print the first 6 rows
