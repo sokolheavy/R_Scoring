@@ -218,4 +218,6 @@ PlotParallels <- function(Errs) {
 PlotParallels(Errs)
 
 
+https://docplayer.net/64849521-Spervised-classification-an-exploration-with-r-erwan-le-pennec-and-ana-karina-fermin-fall-2015.html
+
 
