@@ -241,10 +241,6 @@ CV <- function(train, k_fold = 5, eval_table = data.frame()) {
 ###Cheak and evauate evaluation
 
 Gini_analysis <- function(eval_table) {
-  cbind(dplyr::summarize(eval_table, mGini = mean(Gini), sdGini = sd(Gini)))
-}
-
-Gini_analysis <- function(eval_table) {
   eval_table <- group_by(eval_table, Model)
   GiniCV <- dplyr::summarize(filter(eval_table, Folds != "None"), # without initial model(model without CV)
                              mGini = mean(Gini), sdGini = sd(Gini)) 
