@@ -1,3 +1,5 @@
+detach(package:neuralnet)
+
 install.packages("DT") 
 install.packages("ClustOfVar") 
 install.packages("ape")
