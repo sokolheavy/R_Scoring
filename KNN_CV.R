@@ -163,7 +163,19 @@ perf_val <- performance(pred_val, 'tpr', 'fpr')
 #Calculating KS statistics
 ks <- max(attr(perf_val, 'y.values')[[1]]-attr(perf_val, 'x.values')[[1]])
 
-ks
+#### transform categorical variable
+
+t <- function(x) {
+    # check if x is numeric
+    if(is.numeric(x)) {
+        return (x)
+    }
+    l <- LabelEncoder.fit(x)
+    y <- transform(l, x)
+    return (y)
+}
+
+new_df <- sapply(df, t)
 
 
 
