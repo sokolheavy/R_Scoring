@@ -6,7 +6,10 @@
 # lasso http://www.science.smith.edu/~jcrouser/SDS293/labs/lab10-r.html
 # PREPROCESING https://habr.com/ru/post/173049/
 # https://www.analyticsvidhya.com/blog/2017/02/introduction-to-ensembling-along-with-implementation-in-r/
+# https://www.analyticsvidhya.com/blog/2019/02/top-5-data-science-github-reddit-january-2019/
+# useful https://www.analyticsvidhya.com/learning-paths-data-science-business-analytics-business-intelligence-big-data/learning-path-r-data-science/
 
+ 
 setwd("F:/scoring/KNN")
 install.packages("ISLR")
 library(ISLR)
@@ -14,6 +17,9 @@ library(dplyr)
 library(class)
 library(DT)
 library(ggplot2)
+library(caret)
+library(e1071)
+library(ROCR)
 
 previous_data <- read.table("https://raw.githubusercontent.com/2lsokol2/R_Scoring/master/Wine.txt", header = T, )
 sc_data <- as.data.frame(scale(previous_data[,-14]))
@@ -24,12 +30,12 @@ str(previous_data)
 # Train Test split
 # choose random observation
 set.seed(3476)
-train.num <- sample(1:nrow(previous_data), round(nrow(previous_data)*.7), replace = FALSE)
+index <- sample(1:nrow(previous_data), round(nrow(previous_data)*.7), replace = FALSE)
 
-test <- sc_data[-train.num, -14]
-test.target <- previous_data[-train.num, 14]
-train <- sc_data[train.num, -14]
-train.target <- previous_data[train.num, 14]
+test <- sc_data[-index, -14]
+test.target <- previous_data[-index, 14]
+train <- sc_data[index, -14]
+train.target <- previous_data[index, 14]
 
 
 # KNN Model
@@ -104,25 +110,68 @@ ggplot(data = reshape2::melt(Acc_analysis(eval_table), "Model"),
 
 #######################################################################################
 ### KNN with caret packetches
+setwd("C:/Users/EASokol/Desktop/Diploma")
+data1 = read.csv('US_Presidential_Data.csv')
 
-# Validation
-valid_pred <- predict(model1,validation, type = “prob”)
+# Transforming the dependent variable to a factor
+data1$Win.Loss = as.factor(data1$Win.Loss)
+datatable(data1[1:100,])
+
+
+# Train Test split
+# choose random observation
+set.seed(101)
+index <- sample(1:nrow(data1), round(nrow(data1)*.7), replace = FALSE)
+train = data1[index,]
+test = data1[-index,]
+
+# Setting levels for both training and validation data
+levels(train$Win.Loss) <- make.names(levels(factor(train$Win.Loss)))
+levels(test$Win.Loss) <- make.names(levels(factor(test$Win.Loss)))
+
+# Setting up train controls
+repeats = 3
+numbers = 10
+tunel = 10
+
+set.seed(1234)
+x = trainControl(method = 'repeatedcv',
+                 number = numbers,
+                 repeats = repeats,
+                 classProbs = TRUE,
+                 summaryFunction = twoClassSummary)
+
+model1 <- train(Win.Loss~. , data = train, method = 'knn',
+                preProcess = c('center','scale'),
+                trControl = x,
+                metric = 'ROC',
+                tuneLength = tunel)
+
+# Summary of model
+model1
+plot(model1)
+
+pred <- predict(model1,test, type = 'prob')
 
 #Storing Model Performance Scores
-library(ROCR)
-pred_val <-prediction(valid_pred[,2],validation$Win.Loss)
+pred_val <-prediction(pred[,2],test$Win.Loss)
 
 # Calculating Area under Curve (AUC)
-perf_val <- performance(pred_val,”auc”)
-perf_val
 
-# Plot AUC
-perf_val <- performance(pred_val, “tpr”, “fpr”)
-plot(perf_val, col = “green”, lwd = 1.5)
+perf_val <- performance(pred_val, 'tpr', 'fpr')
 
 #Calculating KS statistics
-ks <- max(attr(perf_val, “y.values”)[[1]] – (attr(perf_val, “x.values”)[[1]]))
+ks <- max(attr(perf_val, 'y.values')[[1]]-attr(perf_val, 'x.values')[[1]])
+
 ks
+
+
+
+
+
+
+
+
 
 
 
