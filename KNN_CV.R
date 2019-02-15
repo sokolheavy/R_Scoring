@@ -8,7 +8,7 @@
 # https://www.analyticsvidhya.com/blog/2017/02/introduction-to-ensembling-along-with-implementation-in-r/
 # https://www.analyticsvidhya.com/blog/2019/02/top-5-data-science-github-reddit-january-2019/
 # useful https://www.analyticsvidhya.com/learning-paths-data-science-business-analytics-business-intelligence-big-data/learning-path-r-data-science/
-
+# gb https://github.com/dmlc/xgboost/tree/master/R-package
  
 setwd("F:/scoring/KNN")
 install.packages("ISLR")
