@@ -177,7 +177,78 @@ t <- function(x) {
 
 new_df <- sapply(df, t)
 
+##########################################################################
+### kNN with categorical variables
 
+install.packages("FNN")
+install.packages("gmodels")
+install.packages("psych")
+install.packages("mlr")
+library(caret)
+library(class)
+library(dplyr)
+library(e1071)
+library(FNN) # estimate the minimal embedding dimension of a multivariate data set
+library(gmodels) 
+library(psych)
+library(mlr)
+data <- read.table("https://quantdev.ssri.psu.edu/sites/qdev/files/student-mat.csv", sep=";", header=TRUE)
+
+#change all variable names to lowercase
+colnames(data) <-tolower(colnames(data))
+
+data_class <- data
+
+# select target column
+mjob_outcome <- data_class %>% select(mjob)
+data_class <- data_class %>% select(-mjob)
+
+# creste dummy variables
+fac_var <- names(data_class)[sapply(data_class, is.factor)]
+
+# scale data 
+data_class_scale <- scale(data_class[,setdiff(names(data_class),fac_var)])
+data_class_dumm <- createDummyFeatures(data_class, cols = fac_var)
+str(data_class)
+
+index <- sample(1:nrow(data_class), round(nrow(data_class)*.7), replace = FALSE)
+train = cbind(data_class_scale,data_class_dumm)[index,]
+train.target <- mjob_outcome[index,]
+test = cbind(data_class_scale,data_class_dumm)[-index,]
+test.target <- mjob_outcome[-index,]
+
+mjob_pred_knn <- knn(train, test, train.target , k=5)
+
+confusionMatrix(mjob_pred_knn, test.target)
+
+### caret usage
+
+# Setting up train controls
+repeats = 3
+numbers = 10
+tunel = 10
+
+set.seed(1234)
+x = trainControl(method = 'repeatedcv',
+                 number = numbers,
+                 repeats = repeats,
+                 classProbs = TRUE)
+
+model1 <- train(train, train.target, method = 'knn',
+                preProcess = c('center','scale'),
+                trControl = x,
+                metric = 'Accuracy',
+                tuneLength = tunel)
+
+# Summary of model
+model1
+plot(model1)
+
+mjob_pred_caret <- train(train, train.target, method = "knn", preProcess = c("center","scale"))
+plot(mjob_pred_caret)
+
+### knn regression 
+# https://quantdev.ssri.psu.edu/sites/qdev/files/kNN_tutorial.html
 
 
 
