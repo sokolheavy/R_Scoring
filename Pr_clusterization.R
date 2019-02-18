@@ -1,5 +1,7 @@
 # https://www.edureka.co/blog/clustering-on-bank-data-using-r/
 # https://towardsdatascience.com/how-to-cluster-your-customer-data-with-r-code-examples-6c7e4aa6c5b1  
+# https://machinelearningmastery.com/machine-learning-in-r-step-by-step/
+# https://towardsdatascience.com/classification-on-a-large-and-noisy-dataset-with-r-c10cf14cbae6
 
 # https://www.guru99.com/r-k-means-clustering.html
 
