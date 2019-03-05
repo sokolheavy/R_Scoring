@@ -1,4 +1,5 @@
-#detach(package:neuralnet)
+# https://www.datacamp.com/projects/tech:r?utm_source=adwords_ppc&utm_campaignid=1457170719&utm_adgroupid=59514459274&utm_device=c&utm_keyword=ggplot2&utm_matchtype=p&utm_network=g&utm_adpostion=1t1&utm_creative=278660198064&utm_targetid=kwd-301408186532&utm_loc_interest_ms=&utm_loc_physical_ms=9061015&gclid=EAIaIQobChMIm5PGz_vq4AIVVamaCh1yxgFAEAAYASACEgIiDfD_BwE
+# detach(package:neuralnet)
 library(DT)          # For Data Tables
 library(dplyr) 
 library(lattice)     # The lattice add-on of Trellis graphics
