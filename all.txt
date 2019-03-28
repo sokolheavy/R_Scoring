@@ -31,15 +31,22 @@ Work with Core analytics teams to ensure that existing data quality is constantl
 
 
 
-practica:
+ADD INFO:
+
+Selecting features, building and optimizing classifiers using learning techniques
+Processing, cleansing, and verifying the integrity of data used for analysis
+Doing ad-hoc analysis and presenting results in a clear manner
+Creating automated anomaly detection systems and constant tracking of their performance
+
+Skills and Qualifications
+Excellent understanding of learning algorithms and approaches to building models from data
+Understanding of the basic methods in machine learning such as as k-NN, Naive Bayes, SVM, Decision Forests, etc.
+Experience with common data science toolkits, such as R, H2O, Python libraries, Spark-ML, MatLab, etc.
+Excellence in at least one of these is highly desirable
 
 
-Jenks та K-means відрізняються тим, як вони мінімізуються в межах відстаней групи. 
-Jenks використовує той факт, що одновимірні дані сортуються, що робить його більш швидким алгоритмом для одновимірних даних. 
-K-means є більш загальними алгоритмом, він ефективний із даними великої розмірності.
 
-метод почергово перебирає всі можливі варіанти класів, рахуючи при цьому міжкласову та міжгрупову дисперсію, отже, вимагає затратів по часу
-ідея методу полягає у мінімізації дисперсії в класах і максималізації міжкласової дисперсії
+
 
 
 
