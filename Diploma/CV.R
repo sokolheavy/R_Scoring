@@ -2,6 +2,7 @@ setwd("C:/Users/EASokol/Desktop/")
 
 
 https://www.kaggle.com/jatinder8889/classification-end-to-end-project-in-r
+https://www.kaggle.com/c/otto-group-product-classification-challenge/discussion/13585
 
 
 read.table()\
