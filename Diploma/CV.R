@@ -1,6 +1,9 @@
 setwd("C:/Users/EASokol/Desktop/")
 
 
+https://www.kaggle.com/jatinder8889/classification-end-to-end-project-in-r
+
+
 read.table()\
 
 Sokol Olena
