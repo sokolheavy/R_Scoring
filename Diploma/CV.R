@@ -3,6 +3,9 @@ setwd("C:/Users/EASokol/Desktop/")
 
 https://www.kaggle.com/jatinder8889/classification-end-to-end-project-in-r
 https://www.kaggle.com/c/otto-group-product-classification-challenge/discussion/13585
+https://www.kaggle.com/niteshx2/top-50-beginners-stacking-lgb-xgb
+https://machinelearningmastery.com/machine-learning-in-r-step-by-step/
+
 
 
 read.table()\
