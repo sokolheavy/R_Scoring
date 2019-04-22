@@ -1,4 +1,3 @@
-https://www.researchgate.net/publication/328026972_Application_of_Machine_Learning_Algorithms_in_Credit_Card_Default_Payment_Prediction
 
 ################### Evaluating models(Gini, KS)
 # load function 'metrics_pdf'
