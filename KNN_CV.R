@@ -1,15 +1,4 @@
-# https://www.analyticsvidhya.com/blog/2017/09/understaing-support-vector-machine-example-code/
-# https://trainings.analyticsvidhya.com/courses/course-v1:AnalyticsVidhya+LP_DL_2019+2019_T1/about?utm_source=AVbannerblogtop&utm_medium=display&utm_campaign=LPDL2019
-# cheetseet - https://www.analyticsvidhya.com/blog/2017/02/top-28-cheat-sheets-for-machine-learning-data-science-probability-sql-big-data/
-# https://www.analyticsvidhya.com/blog/2017/09/naive-bayes-explained/
-# regresion - https://www.analyticsvidhya.com/blog/2015/08/comprehensive-guide-regression/
-# lasso http://www.science.smith.edu/~jcrouser/SDS293/labs/lab10-r.html
-# PREPROCESING https://habr.com/ru/post/173049/
-# https://www.analyticsvidhya.com/blog/2017/02/introduction-to-ensembling-along-with-implementation-in-r/
-# https://www.analyticsvidhya.com/blog/2019/02/top-5-data-science-github-reddit-january-2019/
-# useful https://www.analyticsvidhya.com/learning-paths-data-science-business-analytics-business-intelligence-big-data/learning-path-r-data-science/
-# gb https://github.com/dmlc/xgboost/tree/master/R-package
- 
+
 setwd("F:/scoring/KNN")
 install.packages("ISLR")
 library(ISLR)
