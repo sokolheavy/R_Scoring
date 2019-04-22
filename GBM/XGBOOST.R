@@ -1,8 +1,3 @@
-# https://www.hackerearth.com/practice/machine-learning/machine-learning-algorithms/beginners-tutorial-on-xgboost-parameter-tuning-r/tutorial/
-# https://insightr.wordpress.com/2018/05/17/tuning-xgboost-in-r-part-i/
-# https://rpubs.com/mharris/multiclass_xgboost
-
-
 # = train and test data = #
 
 factor_names <- names(data[ ,sapply(data, is.factor)])
