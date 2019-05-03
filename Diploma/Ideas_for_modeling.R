@@ -8,3 +8,6 @@ https://github.com/ShuaiW/kaggle-classification   --all topics for classificatio
 5. https://www.kaggle.com/yibochen/xgboost-in-r-2-27217 --xgboost
 6. https://www.kaggle.com/grosvenpaul/beginners-guide-to-eda-and-random-forest-using-r --RF
 7. https://www.kaggle.com/akshaydighe31/binary-classification-using-random-forest
+
+Only for diploma:
+1. http://www.machinelearning.ru/wiki/images/6/62/2014_517_FonarevAY.pdf - dummy variables
