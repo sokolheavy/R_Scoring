@@ -4,6 +4,10 @@
 # https://www.r-bloggers.com/a-brief-tour-of-the-trees-and-forests/ - about trees
 # https://stats.stackexchange.com/questions/12140/conditional-inference-trees-vs-traditional-decision-trees - about trees
 # https://stackoverflow.com/questions/31314153/decision-tree-completely-different-between-rpart-and-party-package 
+# https://www.r-bloggers.com/five-steps-for-missing-data-with-finalfit/
+# https://basegroup.ru/community/articles/missing
+# https://statistics.ohlsen-web.de/multiple-imputation-with-mice/
+# https://www.kaggle.com/quinn126/predicting-german-credit-risk-logit-reg-xgboost
 
 setwd('C:/Users/EASokol/Desktop/Diploma')
 install.packages("caretEnsemble")
@@ -259,12 +263,11 @@ meth<- ini$meth
 meth
 
 pred <- ini$pred
-View(pred)
 pas.imp <- mice(work_data[, -1], meth=meth, pred=pred, maxit=10, seed=123, print=F)
 completedData <- complete(pas.imp)
 work_data <- data.frame(target = work_data[,1], completedData)
 work_data_if_smth_go_wrong <- work_data 
-
+work_data <- work_data_if_smth_go_wrong
 
 densityplot(work_data)
 stripplot(work_data, pch = 20, cex = 1.2)
@@ -338,7 +341,7 @@ for (i in bin_col)
   eq_d<-classIntervals(floor(work_data[,i]/digit[i])*digit[i], 5, style = 'quantile')
   
   # column name for new binning column, that bins with 'equal' method
-  colname <- paste(names(work_data)[i], "cat_Eq_depth ", sep="_")
+  colname <- paste(names(work_data)[i], "cat_Eq_depth", sep="_")
   
   # set column, that bins with 'equal' method
   work_data[[colname]] <- with(work_data, cut(work_data[,i], 
@@ -453,6 +456,13 @@ work_data$duration_month_2 <- NULL
 work_data$credit_amount_5 <- NULL
 work_data$age_in_yrs_13 <- NULL
 
+unique(work_data$credit_amount_5_cat_eq_width)
+
+work_data <-
+  work_data %>%
+  mutate(credit_amount_5_cat_eq_width = recode(credit_amount_5_cat_eq_width, 
+                                               '[14789.2;18424]' = '[11154.4;14789.2)'))
+
 bin_data <- work_data
 variable_fc_bin <- which( colnames(bin_data)=="target" ) + 1
 bin_ncol <- ncol(bin_data)
@@ -479,7 +489,12 @@ iv_table$Strength <- ifelse(iv_table$IV>=1, "Suspicious",
                                                  ifelse(iv_table$IV>=.02, "Weak", "Wery weak")))))
 
 
-iv_table[!grepl('hcl',iv_table$variables), -1]
+iv_table <- iv_table[grepl('cat',iv_table$variables)&!grepl('hcl',iv_table$variables), -1] %>%
+            transmute(Num = row_number(), !!!.) %>%
+            arrange(desc(variables,IV))
+
+iv_tab <- ggtexttable(iv_table, rows = NULL, theme = ttheme(base_style ="lRedWhite", base_size = 6))
+iv_tab
 
 
 
@@ -495,10 +510,11 @@ iv_table[!grepl('hcl',iv_table$variables), -1]
 
 
 ##### BR analysis #####
-bin_data <- work_data
+
+bin_ncol <- ncol(work_data)
 variable_fc_bin <- 2
-i <- 2
-bin_ncol<-ncol(bin_data)
+
+
 for (i in variable_fc_bin:bin_ncol){
   #create 'br_table'. It consists of 2 column("BR" + name_of_variables, BR_value)
   var_for_group <- names(bin_data)[i]
@@ -507,26 +523,28 @@ for (i in variable_fc_bin:bin_ncol){
                      , sep="_")
   
   br_table <- bin_data %>%
-    select(c(i,target)) %>%
-    group_by_(.dots = var_for_group) %>%
+    select(c(var_for_group, target)) %>%
+    group_by_(var_for_group) %>%
     summarise_all(funs(!!column_br := (n() - sum(.))/n()))
   
   # join 'br_table' to the table with bining variables
   bin_data <- left_join(bin_data, br_table,by=names(bin_data)[i])
 }
 
-setwd("F:/Дипломна робота_2/картинки")
+
+setwd("C:/Users/EASokol/Desktop/презентаха")
+bin_ncol<-ncol(work_data)
 target_calc_bin <- 1
 variable_fc_bin <- 2
-bin_ncol <- 21
+bin_ncol <- 58
 k <- 1
 i <- 1
 
-Total<-length(bin_data$target_for_calc)
-Good<-sum(bin_data$target_for_calc)
+Total<-length(bin_data$target)
+Good<-sum(bin_data$target)
 Bad<-Total-Good
 
-j <- 18
+j <- 2
 for (j in variable_fc_bin:bin_ncol) {
   
   plot1_hist <- ggplot(bin_data, aes(bin_data[,j])) + 
@@ -543,7 +561,7 @@ for (j in variable_fc_bin:bin_ncol) {
     geom_point(color="indianred3") +
     theme(axis.text.x = element_text(angle=10, vjust=0.9),
           plot.margin = unit(c(1,1,1,1), "cm") ) + 
-    scale_y_continuous(limits=c(0, 0.6),breaks= seq(0, .6, .2), 
+    scale_y_continuous(limits=c(0, 0.9),breaks= seq(0, .6, .2), 
                        labels = function(x) paste0(x*100, "%"))+
     labs( y = "BR", x = "")
   
@@ -566,6 +584,7 @@ for (j in variable_fc_bin:bin_ncol) {
   ax$grobs[[1]]$x <- ax$grobs[[1]]$x - unit(1, "npc") + unit(0.15, "cm")
   g <- gtable_add_cols(g, g2$widths[g2$layout[ia, ]$l], length(g$widths) - 1)
   g <- gtable_add_grob(g, ax, pp$t, length(g$widths) - 1, pp$b)
+  
   
   #log(x) will produce NaN any time x is less than zero(calculating 'length(x)-sum(x)' we have '-' func 'log' see that and returns error
   options(warn = -1) 
@@ -605,17 +624,189 @@ for (j in variable_fc_bin:bin_ncol) {
   table <- ggtexttable(aggregate_table, rows = NULL, theme = ttheme("lRedWhite"))
   
   # set name of variable and her 'Strength'(dependense of IV: 'Strong', Weak, 'Very weak' and etc)
+  text1 <- paste0("
+                  ",k,". ",names(bin_data)[j],": ", iv_table$Strength[iv_table$variables == names(bin_data)[j]])
+  
+  
+  # set style of 'text1'
+  title1 <- ggparagraph(text = text1, face = "italic", size = 25, color = "black")
+  
+  
+  text2 <- paste0("                  ","IV ="
+                  ,round(iv_table$IV[iv_table$variables == names(bin_data)[j]],4), sep = " ")
+  title2 <- ggparagraph(text = text2, face = "italic", size = 20, color = "black")
+  
+  # set name of variable and her 'Strength'(dependense of IV: 'Strong', Weak, 'Very weak' and etc)
   print(paste0(k,". ", names(bin_data)[j]))
   k <- k+1
   png(file = paste0(i,".png"),width = 1200, height=1200)
   i <- i+1
+  
   # union 4 object in one file: 
-  print(ggarrange( g, table , 
-                   ncol = 1, nrow = 2,heights = c(0.1, 0.04, 0.04, 0.3, 0.2)))
+  print(ggarrange(title1, title2, g, table , 
+                   ncol = 1, nrow = 4,heights = c(0.1, 0.04, 0.3, 0.2)))
   
   dev.off() 
   
 }
+
+#№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№
+
+work_data2 <- bin_data[ ,c(1:18,22,34,48)]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+plot(boruta_credit)
+
+
+boruta_credit <- TentativeRoughFix(boruta_credit)
+boruta_credit
+
+model_formula <- getConfirmedFormula(boruta_credit)
+model_formula
+
+boruta_variables <- getSelectedAttributes(boruta_credit)
+
+knitr::kable(attStats(boruta_credit))
+
+plotImpHistory(boruta_credit)
+
+boruta_dataset <- select(initial_data, c(target, boruta_variables))
+
+cl <- makeCluster(6)
+registerDoParallel(cl) 
+
+fitControl <- trainControl(method = "repeatedcv", 
+                           number = 5, 
+                           repeats = 5,
+                           classProbs = TRUE, 
+                           summaryFunction = twoClassSummary,
+                           sampling = "smote")
+
+work_data22 <- work_data2
+work_data22$target <- as.factor(work_data22$target)
+set.seed(100)
+fit1 <- train(target ~ ., 
+              data = work_data22, 
+              method = "glmnet", 
+              trControl = fitControl,
+              metric = "ROC",
+              tuneGrid = expand.grid(alpha = c(0.1, 0.5, 1),
+                                     lambda = c(0.005, 0.01, 0.02)))
+
+
+saveRDS(fit1,  "fit1.rds")
+fit1 <- readRDS("fit1.rds")
+fit1$results[order(-fit1$results$ROC), ]
+
+### 
+# train & test
+ind <- sample(c(1,2), nrow(boruta_dataset), replace = T, prob = c(.8, .2))
+train <- initial_data[ind==1,]
+test <- initial_data[ind==2,]
+
+
+### boruta variable
+
+# boruta_dataset <- train
+#  72.29 86.15
+
+# boruta_dataset <- test
+#  88.54 94.27
+
+##67.62 83.81
+m1 <- glm(target~.,data=boruta_dataset,family=binomial())
+
+#score test data set
+boruta_dataset$m1_score <- predict(m1,type='response',boruta_dataset)
+m1_pred <- prediction(boruta_dataset$m1_score, boruta_dataset$target)
+m1_perf <- performance(m1_pred,"tpr","fpr")
+
+ev_df_m1 <- data.frame(Gini = round(((slot(performance(m1_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
+                       AUC = round(performance(m1_pred, measure = "auc")@y.values[[1]]*100, 2))
+
+ev_df_m1
+
+
+### initial variable
+
+# train & test
+ind <- sample(c(1,2), nrow(work_data), replace = T, prob = c(.8, .2))
+train <- initial_data[ind==1,]
+test <- initial_data[ind==2,]
+
+
+### boruta variable
+
+# work_data <- train
+# 42.68 71.34
+
+# work_data <- test
+#  51.73 75.86
+
+
+
+##64.78 82.39
+m1 <- glm(target_for_calc~.,data=work_data,family=binomial())
+т
+#score test data set
+work_data$m1_score <- predict(m1,type='response',work_data)
+m1_pred <- prediction(work_data$m1_score, work_data$target)
+m1_perf <- performance(m1_pred,"tpr","fpr")
+
+ev_df_m1 <- data.frame(Gini = round(((slot(performance(m1_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
+                       AUC = round(performance(m1_pred, measure = "auc")@y.values[[1]]*100, 2))
+
+ev_df_m1
+
+
+
+
+### lasso ridge 
+# load data
+num_data<-read.csv("german-numeric.csv", h=F, sep=",,,")
+
+
+x.m = data.matrix(cv.train.m[,2:14])
+y.m = cv.train.m$Survived
+
+set.seed(356)
+# 10 fold cross validation
+cvfit.m.ridge = cv.glmnet(x.m, y.m, 
+                          family = "binomial", 
+                          alpha = 0,
+                          type.measure = "class")
+
+cvfit.m.lasso = cv.glmnet(x.m, y.m, 
+                          family = "binomial", 
+                          alpha = 1,
+                          type.measure = "class")
+par(mfrow=c(1,2))
+plot(cvfit.m.ridge, main = "Ridge")
+plot(cvfit.m.lasso, main = "Lasso")
+
 №№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№
 
 
