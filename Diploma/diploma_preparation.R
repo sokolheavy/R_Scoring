@@ -1,3 +1,242 @@
+https://www.kaggle.com/quinn126/predicting-german-credit-risk-logit-reg-xgboost
+https://www.kaggle.com/uciml/german-credit/kernels?sortBy=hotness&group=everyone&pageSize=20&datasetId=531&language=R
+https://rpubs.com/akulmahajan/366429
+https://rpubs.com/Hgoswami/368878
+https://www.kaggle.com/bisaria/titanic-lasso-ridge-implementation#lasso-and-ridge-models
+
+work_data_first <- work_data
+
+work_data$age_in_yrs_13 <- as.factor(ifelse(work_data$age_in_yrs_13<=25, '0-25',
+                                            ifelse(work_data$age_in_yrs_13<=30, '25-30',
+                                                   ifelse(work_data$age_in_yrs_13<=35, '30-35', 
+                                                          ifelse(work_data$age_in_yrs_13<=40, '35-40', 
+                                                                 ifelse(work_data$age_in_yrs_13<=45, '40-45', 
+                                                                        ifelse(work_data$age_in_yrs_13<=50, '45-50',
+                                                                               ifelse(work_data$age_in_yrs_13<=60, '50-60',
+                                                                                      '60+'))))))))
+
+work_data$credit_amount_5<-as.factor(ifelse(work_data$credit_amount_5<=1400,'0-1400',
+                                            ifelse(work_data$credit_amount_5<=2500,'1400-2500',
+                                                   ifelse(work_data$credit_amount_5<=3500,'2500-3500', 
+                                                          ifelse(work_data$credit_amount_5<=4500,'3500-4500',
+                                                                 ifelse(work_data$credit_amount_5<=5500,'4500-5500','5500+'))))))
+
+
+
+# Create some groups from contious variables
+work_data$duration_month_2 <-as.factor(ifelse(work_data$duration_month_2<=6,'00-06',
+                                              ifelse(work_data$duration_month_2<=12,'06-12',
+                                                     ifelse(work_data$duration_month_2<=24,'12-24', 
+                                                            ifelse(work_data$duration_month_2<=30,'24-30',
+                                                                   ifelse(work_data$duration_month_2<=36,'30-36',
+                                                                          ifelse(work_data$duration_month_2<=42,'36-42','42+')))))))
+
+
+
+keep<- c(1:8,12,13,21)
+cdata_reduced_2 <- work_data[,keep]
+
+div_part_1 <- createDataPartition(y = cdata_reduced_2$target, p = 0.7, list = F)
+
+# Training Sample
+train <- cdata_reduced_2[div_part_1,] # 70% here
+
+# Test Sample
+test <- cdata_reduced_2[-div_part_1,] # rest of the 30% data goes here
+table(test$target)
+
+
+
+
+
+
+work_data <- work_data[,c(1:5,13,14)]
+set.seed(123)
+train<-work_data[sort(sample(nrow(work_data), nrow(work_data)*.7)),] # 70% here
+test<-work_data[-sort(sample(nrow(work_data), nrow(work_data)*.7)),] # rest of the 30% data goes here
+
+
+m2 <- rpart(target~.,data=train,method=	"class")
+
+# score test data
+test$m2_score <- predict(m2,test)
+m2_pred <- prediction(test$m2_score,test$target)
+m2_perf <- performance(m2_pred,"tpr","fpr")
+
+
+test$m2_score <- predict(m2,type='prob',test)
+m2_pred <- prediction(test$m2_score[,2],test$target)
+m2_perf <- performance(m2_pred,"tpr","fpr")
+
+
+
+
+ev_df_m2 <- data.frame(Gini = round(((slot(performance(m2_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
+                       AUC = round(performance(m2_pred, measure = "auc")@y.values[[1]]*100, 2))
+ev_df_m2
+
+ev_df_m2 <- ggtexttable(ev_df_m2, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
+
+
+m1_gini_plot <- ggplot(setNames(data.frame(m2_perf@x.values, m2_perf@y.values), c('x_val', 'y_val')), 
+                       aes(x = x_val, y = y_val), color=sort_criterion) + 
+  geom_line(aes(group=1), colour="#000099", size=1) + 
+  geom_abline(color="gray") +
+  xlab("False Positive Rate") +
+  ylab("True Positive Rate") +
+  theme_bw(base_size = 20) +
+  scale_x_continuous(breaks=seq(0,1,0.2)) +
+  scale_y_continuous(breaks=seq(0,1,0.2)) +
+  theme(legend.position ="none")
+
+
+
+
+
+
+
+
+
+# work_data
+
+# Partition data
+set.seed(1234)
+ind <- sample(2, nrow(work_data), replace = T, prob = c(0.8, 0.2))
+train <- work_data[ind==1,]
+test <- work_data[ind==2,]
+
+# Create matrix - One-Hot Encoding for Factor variables
+trainm <- sparse.model.matrix(target ~ .-1, data = train)
+train_label <- train[,"target"]
+train_matrix <- xgb.DMatrix(data = as.matrix(trainm), label = train_label)
+
+testm <- sparse.model.matrix(target~.-1, data = test)
+test_label <- test[,"target"]
+test_matrix <- xgb.DMatrix(data = as.matrix(testm), label = test_label)
+
+# Parameters
+nc <- length(unique(train_label))
+xgb_params <- list("objective" = "multi:softprob",
+                   "eval_metric" = "mlogloss",
+                   "num_class" = nc)
+watchlist <- list(train = train_matrix, test = test_matrix)
+
+
+
+bst_model <- xgb.train(params = xgb_params,
+                       data = train_matrix,
+                       nrounds = 1000, 
+                       watchlist = watchlist, # can see all rounds of losses
+                       eta = 0.001, # learning rate 
+                       max.depth = 3, # depth of trees
+                       gamma = 0, # larger value - more conservative algoritm  
+                       subsample = 1, # proc splits - test/train
+                       colsample_bytree = 1, 
+                       missing = NA,
+                       seed = 333)
+
+names(train_num)
+
+# add values for perfomance plots(only for calc)
+pred <- prediction(pred_target, train[-s[[k]], measurevar])
+
+# Prediction & confusion matrix - test data
+p <- predict(bst_model, newdata = test_matrix, type = "response")
+
+pred <- matrix(p, nrow = nc, ncol = length(p)/nc) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = test_label, max_prob = max.col(., "last")-1)
+
+auc <- mean(pred$label==pred$max_prob)
+gini 
+
+
+
+
+
+### second iteration 
+trainm <- sparse.model.matrix(target ~ ., data = train_num)
+train_label <- train_num[,"target"]
+train_matrix <- xgb.DMatrix(data = as.matrix(trainm), label = train_label)
+
+testm <- sparse.model.matrix(target~., data = test_num)
+test_label <- test_num[,"target"]
+test_matrix <- xgb.DMatrix(data = as.matrix(testm), label = test_label)
+
+xgb = xgboost(data = train_matrix, 
+              eta = 0.1,
+              max_depth = 5, 
+              gamma = 0,
+              objective = "binary:logistic",
+              nrounds = 15, 
+              subsample = 0.8,
+              colsample_bytree = 0.8,
+              seed = 1,
+              eval_metric = "error")
+
+par(mar=c(1,1,1,1))
+# Training & test error plot
+e <- data.frame(xgb$evaluation_log)
+
+
+
+png(filename="GBM2.png", res=150, width = 1000, height = 1000)
+plot(e$iter, e$train_mlogloss, col = 'blue')
+lines(e$iter, e$test_mlogloss, col = 'red')
+dev.off()
+
+
+
+imp <- xgb.importance(colnames(train_matrix), model = bst_model)
+print(imp)
+
+xgb.plot.importance(imp)
+
+pred_target <- predict(object = model, type = "response")
+
+# add values for perfomance plots(only for calc)
+pred <- prediction(pred_target, train[-s[[k]], measurevar])
+
+# Prediction & confusion matrix - test data
+p <- predict(xgb, newdata = test_matrix, type = "response")
+
+pred <- matrix(p, nrow = nc, ncol = length(p)/nc) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = test_label, max_prob = max.col(., "last")-1)
+
+auc <- mean(pred$label==pred$max_prob)
+gini <- auc*2 -1
+gini
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # https://www.edureka.co/blog/clustering-on-bank-data-using-r/
 # https://towardsdatascience.com/how-to-cluster-your-customer-data-with-r-code-examples-6c7e4aa6c5b1  
 # https://www.kaggle.com/btremaine/titanic-random-forest-using-cforest
@@ -7,79 +246,53 @@
 # https://www.r-bloggers.com/five-steps-for-missing-data-with-finalfit/
 # https://basegroup.ru/community/articles/missing
 # https://statistics.ohlsen-web.de/multiple-imputation-with-mice/
-# https://www.kaggle.com/quinn126/predicting-german-credit-risk-logit-reg-xgboost
+# install.packages("caroline") 
 
-setwd('C:/Users/EASokol/Desktop/Diploma')
-install.packages("caretEnsemble")
-install.packages("mice") # for missing values
-install.packages("doParallel")
-install.packages("car")
-install.packages("tibble")
-install.packages("caroline")
 
-library(dplyr)
-library(tibble)
-library(caret)
-library(caretEnsemble)
-library(mice)
-library(doParallel)
-library(car)
-library(classInt)
-library(RColorBrewer)
-library(smbinning)
 library(plyr)
 library(dplyr)
+library(tibble)
+library(tidyr)
+library(tibble)
+library(tidyverse)
+library(knitr)
+
 library(ggplot2)
 library(gridExtra)
 library(ggpubr)
 library(cowplot)
 library(gtable)
+library(gridExtra)
+library(corrplot)
+library(grid)
+
+library(caret)
+library(caretEnsemble)
+library(mice)
+library(classInt)
+library(RColorBrewer)
+library(party)
 library(rpart)
+library(rpart.utils)
 library(rpart.plot)
 library(C50)
 library(randomForest)
 library(lattice)
-library(knitr)
 library(ape)
-library(caret)
-library(rpart.utils)
 library(kernlab)
 library(lars)
-library(party)
+library(glmnet)
 library(caroline)
-
-# https://www.r-bloggers.com/five-steps-for-missing-data-with-finalfit/
-# https://basegroup.ru/community/articles/missing
-# https://statistics.ohlsen-web.de/multiple-imputation-with-mice/
-
-install.packages("GGally")
-install.packages("finalfit") 
-install.packages("MissMech") 
-install.packages("plotly") 
-
 library(finalfit) 
-library(gridExtra)
-library(ggpubr)
-library(cowplot)
-library(corrplot)
-library(gtable)
-library(grid)
-library(tidyr)
-library(tibble)
-library(tidyverse)
-library(corrplot)
 library(ROCR)
 library(MLmetrics)
 library(VIM)
 library(GGally)
 library(MissMech)
-library(plotly)
-library(knitr)
-library(rpart)
 library(InformationValue)
-library(classInt)
 library(smbinning)
-
+library(xgboost)
+library(caroline)
 
 
 # load data
@@ -104,9 +317,9 @@ work_data$age_in_yrs_13        <-  as.numeric(work_data$age_in_yrs_13)
 work_data$number_cards_this_bank_16    <-  as.factor(work_data$number_cards_this_bank_16)
 work_data$no_people_liable_for_mntnance_18 <-  as.factor(work_data$no_people_liable_for_mntnance_18)
 work_data$credit_history_3<-as.factor(ifelse(work_data$credit_history_3 == "A30", "01.A30",
-                                         ifelse(work_data$credit_history_3 == "A31","02.A31",
-                                                ifelse(work_data$credit_history_3 == "A32","03.A32.A33",
-                                                       ifelse(work_data$credit_history_3 == "A33","03.A32.A33", "04.A34")))))
+                                             ifelse(work_data$credit_history_3 == "A31","02.A31",
+                                                    ifelse(work_data$credit_history_3 == "A32","03.A32.A33",
+                                                           ifelse(work_data$credit_history_3 == "A33","03.A32.A33", "04.A34")))))
 work_data <- data.frame(target = ifelse(work_data$good_bad_21 == 1, 1,0), work_data)
 work_data$good_bad_21 <- NULL 
 
@@ -156,6 +369,13 @@ work_data <-
                          A174 = "NOT_OFFICIAL"))
 
 
+
+explanatory = c("housing_type_15", "chk_ac_status_1", "job_17")
+dependent = "target"
+work_data %>% 
+  missing_pairs(dependent, explanatory)
+
+
 ggplot(work_data, aes(housing_type_15)) +
   geom_bar(aes(y = (..count..)/sum(..count..)), fill = "steelblue4") +
   scale_y_continuous(labels=scales::percent) + 
@@ -186,6 +406,8 @@ ggplot(work_data, aes(number_cards_this_bank_16)) +
   labs( y = "", x = "Number of cards")
 
 
+
+
 work_data %>%
   missing_plot()
 
@@ -195,14 +417,14 @@ ggplot(work_data[is.na(work_data[,16]),], aes(x=target)) +
   geom_density(aes(group=target, colour=target, fill=target), alpha=0.3) +
   labs(x = "Type of house") +
   theme(legend.position ="none")
-  
+
 # density w/o na
 ggplot(work_data[is.na(work_data[,16])==F,], aes(x=target)) + 
   geom_density(aes(group=target, colour=target, fill=target), alpha=0.3) +
   labs(x = "Type of house") +
   theme(legend.position ="none")  
-  
-  
+
+
 ### Type of job
 # density of na 
 ggplot(work_data[is.na(work_data[,17]),], aes(x=target)) + 
@@ -230,8 +452,8 @@ ggplot(work_data[is.na(work_data[,18])==F,], aes(x=target)) +
   geom_density(aes(group=target, colour=target, fill=target), alpha=0.3) +
   labs(x = "Type of house") +
   theme(legend.position ="none")  
-  
-  
+
+
 ### chisq.test
 j <- 17
 agg_table <- data.frame(true = table(work_data[is.na(work_data[,16])==F, 1]),
@@ -240,16 +462,16 @@ agg_table <- data.frame(true = table(work_data[is.na(work_data[,16])==F, 1]),
 
 ch_table <- data.frame()
 for (j in c(16,17,18)){
-pre_ch_table <- data.frame(true = data.frame(table(work_data[is.na(work_data[,j])==F, 1]))[,2],
-                       missing = data.frame(table(work_data[is.na(work_data[,j]), 1]))[,2])
-
-# set chisq.test value and p_value
-chisq <- round(as.data.frame(chisq.test(pre_ch_table)[1])[1,1], 3)
-p_value_chisq <- round(as.data.frame(chisq.test(pre_ch_table)[3])[1,1], 5)
+  pre_ch_table <- data.frame(true = data.frame(table(work_data[is.na(work_data[,j])==F, 1]))[,2],
+                             missing = data.frame(table(work_data[is.na(work_data[,j]), 1]))[,2])
   
-ch_table <- union_all(ch_table, data.frame(variable = names(work_data)[j],
-                       chisq_value = chisq,
-                       p_value = p_value_chisq))
+  # set chisq.test value and p_value
+  chisq <- round(as.data.frame(chisq.test(pre_ch_table)[1])[1,1], 3)
+  p_value_chisq <- round(as.data.frame(chisq.test(pre_ch_table)[3])[1,1], 5)
+  
+  ch_table <- union_all(ch_table, data.frame(variable = names(work_data)[j],
+                                             chisq_value = chisq,
+                                             p_value = p_value_chisq))
 }
 
 
@@ -263,11 +485,12 @@ meth<- ini$meth
 meth
 
 pred <- ini$pred
+View(pred)
 pas.imp <- mice(work_data[, -1], meth=meth, pred=pred, maxit=10, seed=123, print=F)
 completedData <- complete(pas.imp)
 work_data <- data.frame(target = work_data[,1], completedData)
 work_data_if_smth_go_wrong <- work_data 
-work_data <- work_data_if_smth_go_wrong
+
 
 densityplot(work_data)
 stripplot(work_data, pch = 20, cex = 1.2)
@@ -314,21 +537,14 @@ digit<- c()
 digit[begin_ncol]<-NA
 
 #Enter precision using next loop or directly like digit[97]<-100 digit[c(3:5)]<-1 digit[135]<-0.01 etc
-for (i in bin_col)
-{ 
-  if(is.na(digit[i]))
-  {
-    print(paste(i, ':', names(work_data[i])), quote = FALSE)
-    print(paste('from', min(as.numeric(work_data[,i])), 'to', max(as.numeric(work_data[,i])), 'with', nrow(unique(work_data[i])), 'unique values in', nrow(work_data[i]), 'records'), quote = FALSE)
-    digit[i] <- as.numeric(readline(prompt="Enter precision: "))
-  }
-}
+
 
 save(digit, file = "digit.rda")
 load(file = 'digit.rda')
 
 error_list <- c()  
 
+work_data <- work_data_if_smth_go_wrong
 #loop with binning and creating cat vatiables in one
 for (i in bin_col) 
 { 
@@ -341,7 +557,7 @@ for (i in bin_col)
   eq_d<-classIntervals(floor(work_data[,i]/digit[i])*digit[i], 5, style = 'quantile')
   
   # column name for new binning column, that bins with 'equal' method
-  colname <- paste(names(work_data)[i], "cat_Eq_depth", sep="_")
+  colname <- paste(names(work_data)[i], "cat_Eq_depth ", sep="_")
   
   # set column, that bins with 'equal' method
   work_data[[colname]] <- with(work_data, cut(work_data[,i], 
@@ -456,13 +672,6 @@ work_data$duration_month_2 <- NULL
 work_data$credit_amount_5 <- NULL
 work_data$age_in_yrs_13 <- NULL
 
-unique(work_data$credit_amount_5_cat_eq_width)
-
-work_data <-
-  work_data %>%
-  mutate(credit_amount_5_cat_eq_width = recode(credit_amount_5_cat_eq_width, 
-                                               '[14789.2;18424]' = '[11154.4;14789.2)'))
-
 bin_data <- work_data
 variable_fc_bin <- which( colnames(bin_data)=="target" ) + 1
 bin_ncol <- ncol(bin_data)
@@ -489,12 +698,7 @@ iv_table$Strength <- ifelse(iv_table$IV>=1, "Suspicious",
                                                  ifelse(iv_table$IV>=.02, "Weak", "Wery weak")))))
 
 
-iv_table <- iv_table[grepl('cat',iv_table$variables)&!grepl('hcl',iv_table$variables), -1] %>%
-            transmute(Num = row_number(), !!!.) %>%
-            arrange(desc(variables,IV))
-
-iv_tab <- ggtexttable(iv_table, rows = NULL, theme = ttheme(base_style ="lRedWhite", base_size = 6))
-iv_tab
+iv_table[!grepl('hcl',iv_table$variables), -1]
 
 
 
@@ -510,11 +714,10 @@ iv_tab
 
 
 ##### BR analysis #####
-
-bin_ncol <- ncol(work_data)
+bin_data <- work_data
 variable_fc_bin <- 2
-
-
+i <- 2
+bin_ncol<-ncol(bin_data)
 for (i in variable_fc_bin:bin_ncol){
   #create 'br_table'. It consists of 2 column("BR" + name_of_variables, BR_value)
   var_for_group <- names(bin_data)[i]
@@ -523,28 +726,26 @@ for (i in variable_fc_bin:bin_ncol){
                      , sep="_")
   
   br_table <- bin_data %>%
-    select(c(var_for_group, target)) %>%
-    group_by_(var_for_group) %>%
+    select(c(i,target)) %>%
+    group_by_(.dots = var_for_group) %>%
     summarise_all(funs(!!column_br := (n() - sum(.))/n()))
   
   # join 'br_table' to the table with bining variables
   bin_data <- left_join(bin_data, br_table,by=names(bin_data)[i])
 }
 
-
-setwd("C:/Users/EASokol/Desktop/презентаха")
-bin_ncol<-ncol(work_data)
+setwd("F:/Дипломна робота_2/картинки")
 target_calc_bin <- 1
 variable_fc_bin <- 2
-bin_ncol <- 58
+bin_ncol <- 21
 k <- 1
 i <- 1
 
-Total<-length(bin_data$target)
-Good<-sum(bin_data$target)
+Total<-length(bin_data$target_for_calc)
+Good<-sum(bin_data$target_for_calc)
 Bad<-Total-Good
 
-j <- 2
+j <- 18
 for (j in variable_fc_bin:bin_ncol) {
   
   plot1_hist <- ggplot(bin_data, aes(bin_data[,j])) + 
@@ -561,7 +762,7 @@ for (j in variable_fc_bin:bin_ncol) {
     geom_point(color="indianred3") +
     theme(axis.text.x = element_text(angle=10, vjust=0.9),
           plot.margin = unit(c(1,1,1,1), "cm") ) + 
-    scale_y_continuous(limits=c(0, 0.9),breaks= seq(0, .6, .2), 
+    scale_y_continuous(limits=c(0, 0.6),breaks= seq(0, .6, .2), 
                        labels = function(x) paste0(x*100, "%"))+
     labs( y = "BR", x = "")
   
@@ -584,7 +785,6 @@ for (j in variable_fc_bin:bin_ncol) {
   ax$grobs[[1]]$x <- ax$grobs[[1]]$x - unit(1, "npc") + unit(0.15, "cm")
   g <- gtable_add_cols(g, g2$widths[g2$layout[ia, ]$l], length(g$widths) - 1)
   g <- gtable_add_grob(g, ax, pp$t, length(g$widths) - 1, pp$b)
-  
   
   #log(x) will produce NaN any time x is less than zero(calculating 'length(x)-sum(x)' we have '-' func 'log' see that and returns error
   options(warn = -1) 
@@ -624,308 +824,19 @@ for (j in variable_fc_bin:bin_ncol) {
   table <- ggtexttable(aggregate_table, rows = NULL, theme = ttheme("lRedWhite"))
   
   # set name of variable and her 'Strength'(dependense of IV: 'Strong', Weak, 'Very weak' and etc)
-  text1 <- paste0("
-                  ",k,". ",names(bin_data)[j],": ", iv_table$Strength[iv_table$variables == names(bin_data)[j]])
-  
-  
-  # set style of 'text1'
-  title1 <- ggparagraph(text = text1, face = "italic", size = 25, color = "black")
-  
-  
-  text2 <- paste0("                  ","IV ="
-                  ,round(iv_table$IV[iv_table$variables == names(bin_data)[j]],4), sep = " ")
-  title2 <- ggparagraph(text = text2, face = "italic", size = 20, color = "black")
-  
-  # set name of variable and her 'Strength'(dependense of IV: 'Strong', Weak, 'Very weak' and etc)
   print(paste0(k,". ", names(bin_data)[j]))
   k <- k+1
   png(file = paste0(i,".png"),width = 1200, height=1200)
   i <- i+1
-  
   # union 4 object in one file: 
-  print(ggarrange(title1, title2, g, table , 
-                   ncol = 1, nrow = 4,heights = c(0.1, 0.04, 0.3, 0.2)))
+  print(ggarrange( g, table , 
+                   ncol = 1, nrow = 2,heights = c(0.1, 0.04, 0.04, 0.3, 0.2)))
   
   dev.off() 
   
 }
 
-#№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№
 
-work_data2 <- bin_data[ ,c(1:18,22,34,48)]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-plot(boruta_credit)
-
-
-boruta_credit <- TentativeRoughFix(boruta_credit)
-boruta_credit
-
-model_formula <- getConfirmedFormula(boruta_credit)
-model_formula
-
-boruta_variables <- getSelectedAttributes(boruta_credit)
-
-knitr::kable(attStats(boruta_credit))
-
-plotImpHistory(boruta_credit)
-
-boruta_dataset <- select(initial_data, c(target, boruta_variables))
-
-cl <- makeCluster(6)
-registerDoParallel(cl) 
-
-fitControl <- trainControl(method = "repeatedcv", 
-                           number = 5, 
-                           repeats = 5,
-                           classProbs = TRUE, 
-                           summaryFunction = twoClassSummary,
-                           sampling = "smote")
-
-work_data22 <- work_data2
-work_data22$target <- as.factor(work_data22$target)
-set.seed(100)
-fit1 <- train(target ~ ., 
-              data = work_data22, 
-              method = "glmnet", 
-              trControl = fitControl,
-              metric = "ROC",
-              tuneGrid = expand.grid(alpha = c(0.1, 0.5, 1),
-                                     lambda = c(0.005, 0.01, 0.02)))
-
-
-saveRDS(fit1,  "fit1.rds")
-fit1 <- readRDS("fit1.rds")
-fit1$results[order(-fit1$results$ROC), ]
-
-### 
-# train & test
-ind <- sample(c(1,2), nrow(boruta_dataset), replace = T, prob = c(.8, .2))
-train <- initial_data[ind==1,]
-test <- initial_data[ind==2,]
-
-
-### boruta variable
-
-# boruta_dataset <- train
-#  72.29 86.15
-
-# boruta_dataset <- test
-#  88.54 94.27
-
-##67.62 83.81
-m1 <- glm(target~.,data=boruta_dataset,family=binomial())
-
-#score test data set
-boruta_dataset$m1_score <- predict(m1,type='response',boruta_dataset)
-m1_pred <- prediction(boruta_dataset$m1_score, boruta_dataset$target)
-m1_perf <- performance(m1_pred,"tpr","fpr")
-
-ev_df_m1 <- data.frame(Gini = round(((slot(performance(m1_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                       AUC = round(performance(m1_pred, measure = "auc")@y.values[[1]]*100, 2))
-
-ev_df_m1
-
-
-### initial variable
-
-# train & test
-ind <- sample(c(1,2), nrow(work_data), replace = T, prob = c(.8, .2))
-train <- initial_data[ind==1,]
-test <- initial_data[ind==2,]
-
-
-### boruta variable
-
-# work_data <- train
-# 42.68 71.34
-
-# work_data <- test
-#  51.73 75.86
-
-
-
-##64.78 82.39
-m1 <- glm(target_for_calc~.,data=work_data,family=binomial())
-т
-#score test data set
-work_data$m1_score <- predict(m1,type='response',work_data)
-m1_pred <- prediction(work_data$m1_score, work_data$target)
-m1_perf <- performance(m1_pred,"tpr","fpr")
-
-ev_df_m1 <- data.frame(Gini = round(((slot(performance(m1_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                       AUC = round(performance(m1_pred, measure = "auc")@y.values[[1]]*100, 2))
-
-ev_df_m1
-
-
-
-
-### lasso ridge 
-# load data
-num_data<-read.csv("german-numeric.csv", h=F, sep=",,,")
-
-
-x.m = data.matrix(cv.train.m[,2:14])
-y.m = cv.train.m$Survived
-
-set.seed(356)
-# 10 fold cross validation
-cvfit.m.ridge = cv.glmnet(x.m, y.m, 
-                          family = "binomial", 
-                          alpha = 0,
-                          type.measure = "class")
-
-cvfit.m.lasso = cv.glmnet(x.m, y.m, 
-                          family = "binomial", 
-                          alpha = 1,
-                          type.measure = "class")
-par(mfrow=c(1,2))
-plot(cvfit.m.ridge, main = "Ridge")
-plot(cvfit.m.lasso, main = "Lasso")
-
-№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№№
-
-
-
-
-
-plot(boruta_credit)
-
-
-boruta_credit <- TentativeRoughFix(boruta_credit)
-boruta_credit
-
-model_formula <- getConfirmedFormula(boruta_credit)
-model_formula
-
-boruta_variables <- getSelectedAttributes(boruta_credit)
-
-knitr::kable(attStats(boruta_credit))
-
-plotImpHistory(boruta_credit)
-
-boruta_dataset <- select(initial_data, c(target, boruta_variables))
-
-cl <- makeCluster(6)
-registerDoParallel(cl) 
-
-fitControl <- trainControl(method = "repeatedcv", 
-                           number = 5, 
-                           repeats = 5,
-                           classProbs = TRUE, 
-                           summaryFunction = twoClassSummary,
-                           sampling = "smote")
-
-set.seed(100)
-fit1 <- train(target ~ ., 
-              data = boruta_dataset, 
-              method = "glmnet", 
-              trControl = fitControl,
-              metric = "ROC",
-              tuneGrid = expand.grid(alpha = c(0.1, 0.5, 1),
-                                     lambda = c(0.005, 0.01, 0.02)))
-
-
-saveRDS(fit1,  "fit1.rds")
-fit1 <- readRDS("fit1.rds")
-fit1$results[order(-fit1$results$ROC), ]
-
-### 
-# train & test
-ind <- sample(c(1,2), nrow(boruta_dataset), replace = T, prob = c(.8, .2))
-train <- initial_data[ind==1,]
-test <- initial_data[ind==2,]
-
-
-### boruta variable
-
-# boruta_dataset <- train
-#  72.29 86.15
-
-# boruta_dataset <- test
-#  88.54 94.27
-
-##67.62 83.81
-m1 <- glm(target~.,data=boruta_dataset,family=binomial())
-
-#score test data set
-boruta_dataset$m1_score <- predict(m1,type='response',boruta_dataset)
-m1_pred <- prediction(boruta_dataset$m1_score, boruta_dataset$target)
-m1_perf <- performance(m1_pred,"tpr","fpr")
-
-ev_df_m1 <- data.frame(Gini = round(((slot(performance(m1_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                       AUC = round(performance(m1_pred, measure = "auc")@y.values[[1]]*100, 2))
-
-ev_df_m1
-
-
-### initial variable
-
-# train & test
-ind <- sample(c(1,2), nrow(work_data), replace = T, prob = c(.8, .2))
-train <- initial_data[ind==1,]
-test <- initial_data[ind==2,]
-
-
-### boruta variable
-
-# work_data <- train
-# 42.68 71.34
-
-# work_data <- test
-#  51.73 75.86
-
-
-
-##64.78 82.39
-m1 <- glm(target_for_calc~.,data=work_data,family=binomial())
-т
-#score test data set
-work_data$m1_score <- predict(m1,type='response',work_data)
-m1_pred <- prediction(work_data$m1_score, work_data$target)
-m1_perf <- performance(m1_pred,"tpr","fpr")
-
-ev_df_m1 <- data.frame(Gini = round(((slot(performance(m1_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                       AUC = round(performance(m1_pred, measure = "auc")@y.values[[1]]*100, 2))
-
-ev_df_m1
-
-save(bin_data, file='bin_data.rda')
-
-bin_data <- bin_data[-916,]
-bin_data[bin_data$credit_amount_5_cat_eq_width=='[14770;18400]',33]  <- '[11140;14770)'
-
-
-
-unique(bin_data$credit_amount_5_cat_eq_width)
-summary(bin_data$credit_amount_5_cat_eq_width)
-View(bin_data$credit_amount_5_cat_eq_width)
-
-View(subset(bin_data, is.na(bin_data$credit_amount_5_cat_eq_width)))
 
 ########################## select variable ##########################################
 duration_month <- iv_table[grepl("duration_month", iv_table$variables),c(2,3)]
@@ -950,58 +861,71 @@ tab3 <- table_cell_font(tab3, row = 3, column = 2, face = "bold")
 
 names(bin_data)
 
-work_data_new <- select(bin_data, target_for_calc,
-                        chk_ac_status_1,
-                        duration_month_2_cat_km_5,
-                        credit_history_3,
-                        purpose_4,
-                        credit_amount_5_cat_eq_width,
-                        savings_ac_bond_6,
-                        p_employment_since_7,
-                        instalment_pct_8,
-                        property_type_12,
-                        age_in_yrs_13_cat_km_6)
 
 
-work_data_old <- select(bin_data, target_for_calc,
-                        chk_ac_status_1,
-                        duration_month_2_cat_eq_depth,
-                        credit_history_3,
-                        purpose_4,
-                        credit_amount_5_cat_eq_depth,
-                        savings_ac_bond_6,
-                        p_employment_since_7,
-                        instalment_pct_8,
-                        property_type_12,
-                        age_in_yrs_13_cat_eq_depth)
+########################## modeling 
 
-names(work_data_new)[1] <- "target"
-names(work_data_old)[1] <- "target"
+work_data2 <- work_data[ ,c(1:18,22,34,48)]
+str(work_data2)
 
-save(work_data_new, file = 'work_data_new.rda')
-save(work_data_old, file = 'work_data_old.rda')
+setwd("F:/Дипломна робота_2")
+save(work_data2, file = 'work_data.rda')
+
 
 ######################### go to model ######################################
+work_data3 <- select(work_data2,
+                     target,
+                     chk_ac_status_1,
+                     credit_history_3,
+                     purpose_4,
+                     savings_ac_bond_6,
+                     p_employment_since_7,
+                     instalment_pct_8,
+                     present_residence_since_11,
+                     duration_month_2_cat_km_6,
+                     other_debtors_or_grantors_10,
+                     credit_amount_5_cat_eq_width)
+
+work_data3 <- select(work_data2,
+                     target,
+                     chk_ac_status_1,
+                     credit_history_3,
+                     purpose_4,
+                     savings_ac_bond_6,
+                     duration_month_2_cat_km_6)
+names(work_data2)
+work_data3 <- work_data2[,c(1:6,11,19,21)]
 #select training sample 
 set.seed(123)
-train<-work_data_new[sort(sample(nrow(work_data_new), nrow(work_data_new)*.7)),] # 70% here
-test<-work_data_new[-sort(sample(nrow(work_data_new), nrow(work_data_new)*.7)),] # rest of the 30% data goes here
+train<-work_data3[sort(sample(nrow(work_data3), nrow(work_data3)*.7)),] # 70% here
+test<-work_data3[-sort(sample(nrow(work_data3), nrow(work_data3)*.7)),] # rest of the 30% data goes here
 
-train_old<-work_data_old[sort(sample(nrow(work_data_old), nrow(work_data_old)*.7)),] # 70% here
-test_old<-work_data_old[-sort(sample(nrow(work_data_old), nrow(work_data_old)*.7)),] # rest of the 30% data goes here
-
+names(work_data2)
 table(train$target)
 table(test$target)
-table(bin_data$target)
 
 
 table(train$target)[1]/table(train$target)[2]
 table(test$target)[1]/table(test$target)[2]
 table(bin_data$target)[1]/table(bin_data$target)[2]
 
+## numeric
+work_data_num <- read.csv2("https://raw.githubusercontent.com/Sokolheavy/R_Scoring/master/Diploma/german-numeric.csv")
+work_data_num[,25] <- ifelse(work_data_num[,25]==1,1,0)
+
+set.seed(123)
+train_num <- work_data_num[sort(sample(nrow(work_data_num), nrow(work_data_num)*.7)),] # 70% here
+test_num <- work_data_num[-sort(sample(nrow(work_data_num), nrow(work_data_num)*.7)),] # rest of the 30% data goes here
+
+
+names(work_data_num) <- c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12','V13',
+                          'V14','V15','V16','V17','V18','V19','V20','V21','V22','V23','V24','target')
+
+
 ##### log regr
 m1 <- glm(target~.,data=train,family=binomial())
-m1 <- step(m1)
+# m1 <- step(m1)
+# summary(m1)
 
 #score test data set
 test$m1_score <- predict(m1,type='response',test)
@@ -1009,15 +933,17 @@ m1_pred <- prediction(test$m1_score, test$target)
 m1_perf <- performance(m1_pred,"tpr","fpr")
 
 ev_df_m1 <- data.frame(Gini = round(((slot(performance(m1_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                         AUC = round(performance(m2_pred, measure = "auc")@y.values[[1]]*100, 2))
+                       AUC = round(performance(m1_pred, measure = "auc")@y.values[[1]]*100, 2))
+ev_df_m1
 
-ev_df_m1 <- ggtexttable(ev_df_m2_1, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
+ev_df_m1 <- ggtexttable(ev_df_m1, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
 
+Gini1 <- round(((slot(performance(m1_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2)
 gini_plot <- ggplot(setNames(data.frame(m1_perf@x.values, m1_perf@y.values), c('x_val', 'y_val')), 
                     aes(x = x_val, y = y_val), color=sort_criterion) + 
   geom_line(aes(group=1), colour="#000099", size=1) + 
   geom_abline(color="gray") +
-  ggtitle(paste("Gini=", round(Gini,4), sep="")) +
+  ggtitle(paste("Gini=", round(Gini1,4), sep="")) +
   xlab("False Positive Rate") +
   ylab("True Positive Rate") +
   theme_bw(base_size = 20) +
@@ -1026,28 +952,109 @@ gini_plot <- ggplot(setNames(data.frame(m1_perf@x.values, m1_perf@y.values), c('
   theme(legend.position ="none")
 
 
+#LASSO
+setwd("F:/Дипломна робота_2/картинки/LASSO")
+x.m = train_num[,1:24]
+y.m = train_num[,25]
+
+set.seed(356)
+# 10 fold cross validation
+cvfit.m.ridge = cv.glmnet(x.m, y.m, 
+                          family = "binomial", 
+                          alpha = 0,
+                          type.measure = "class")
+
+cvfit.m.lasso = cv.glmnet(x.m, y.m, 
+                          family = "binomial", 
+                          alpha = 1,
+                          type.measure = "class")
+par(mfrow=c(1,2))
+png(filename="myfile.png", res=150, width = 1000, height = 1000)
+plot(cvfit.m.ridge, main = "Ridge")
+
+plot(cvfit.m.lasso, main = "Lasso")
+dev.off()
+
+#### second variant 
+mat1 <- model.matrix(target ~ . , data = train  ) # convert to numeric matrix
+mat2 <- model.matrix(target ~ . , data = test  )  # convert to numeric matrix
+
+m3 <-cv.glmnet(mat1,as.numeric(train$target), alpha=1, family="binomial", type.measure = 'auc')
+
+# Apply model to testing dataset
+test$m3_score <- predict(m3,type="response", newx =mat2, s = 'lambda.min')
+m3_pred <- prediction(test$lasso.prob,test$target)
+
+# calculate probabilities for TPR/FPR for predictions
+m3_perf <- performance(m3_pred,"tpr","fpr")
+
+
+ev_df_m3 <- data.frame(Gini = round(((slot(performance(m3_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
+                         AUC = round(performance(m3_pred, measure = "auc")@y.values[[1]]*100, 2))
+
+ev_df_m3 <- ggtexttable(ev_df_m3, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
+
+Gini3 <- round(((slot(performance(m3_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2)
+gini_plot <- ggplot(setNames(data.frame(m3_perf@x.values, m3_perf@y.values), c('x_val', 'y_val')), 
+                    aes(x = x_val, y = y_val), color=sort_criterion) + 
+  geom_line(aes(group=1), colour="#000099", size=1) + 
+  geom_abline(color="gray") +
+  ggtitle(paste("Gini=", round(Gini3,4), sep="")) +
+  xlab("False Positive Rate") +
+  ylab("True Positive Rate") +
+  theme_bw(base_size = 20) +
+  scale_x_continuous(breaks=seq(0,1,0.2)) +
+  scale_y_continuous(breaks=seq(0,1,0.2)) +
+  theme(legend.position ="none")
+
+png(filename="LASSO.png", res=150, width = 1000, height = 1000)
+plot(m3)
+dev.off()
+
+log(m3$lambda.min)
+
+coef(m3, s=m3$lambda.min)
+
+### Random Forest
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+names(work_data2)
+
 ##### recursive partition (cart algorithm)#####
 
-m2 <- rpart(target~.,data=train)
-# Print tree detail
-printcp(m2)
+set.seed(123)
+train<-work_data2[sort(sample(nrow(work_data3), nrow(work_data2)*.7)),] # 70% here
+test<-work_data2[-sort(sample(nrow(work_data3), nrow(work_data2)*.7)),] # rest of the 30% data goes here
 
-# Better version of plot
-prp(m2,type=2,extra=1,  main="Tree:Recursive Partitioning")
+
+m2 <- rpart(target~age_in_yrs_13_cat_jenks+credit_amount_5_cat_eq_width+credit_history_3+duration_month_2_cat_km_6+property_type_12+purpose_4,data=train)
 
 # score test data
-test$m2_score <- predict(m2,type='prob',test)
-m2_pred <- prediction(test$m2_score[,2],test$target)
+test$m2_score <- predict(m2,test)
+m2_pred <- prediction(test$m2_score,test$target)
 m2_perf <- performance(m2_pred,"tpr","fpr")
 
 ev_df_m2 <- data.frame(Gini = round(((slot(performance(m2_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                         AUC = round(performance(m2_pred, measure = "auc")@y.values[[1]]*100, 2))
+                       AUC = round(performance(m2_pred, measure = "auc")@y.values[[1]]*100, 2))
 
 ev_df_m2 <- ggtexttable(ev_df_m2, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
 
 
 m1_gini_plot <- ggplot(setNames(data.frame(m2_perf@x.values, m2_perf@y.values), c('x_val', 'y_val')), 
-                    aes(x = x_val, y = y_val), color=sort_criterion) + 
+                       aes(x = x_val, y = y_val), color=sort_criterion) + 
   geom_line(aes(group=1), colour="#000099", size=1) + 
   geom_abline(color="gray") +
   xlab("False Positive Rate") +
@@ -1063,16 +1070,17 @@ m1_gini_plot <- ggplot(setNames(data.frame(m2_perf@x.values, m2_perf@y.values), 
 m2_1 <- C5.0(x = train[,-1] , y = as.factor(train[,1]))
 # score test data
 test$m2_score <- predict(m2_1,type='prob',test)
-m2_pred <- prediction(test$m2_score[,2],test$target)
+m2_1_pred <- prediction(test$m2_score,test$target)
 m2_perf <- performance(m2_pred,"tpr","fpr")
 
+
 ev_df_m2_1 <- data.frame(Gini = round(((slot(performance(m2_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                       AUC = round(performance(m2_pred, measure = "auc")@y.values[[1]]*100, 2))
+                         AUC = round(performance(m2_pred, measure = "auc")@y.values[[1]]*100, 2))
 
 ev_df_m2_1 <- ggtexttable(ev_df_m2_1, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
 
 m2_1_gini_plot <- ggplot(setNames(data.frame(m2_perf@x.values, m2_perf@y.values), c('x_val', 'y_val')), 
-                    aes(x = x_val, y = y_val), color=sort_criterion) + 
+                         aes(x = x_val, y = y_val), color=sort_criterion) + 
   geom_line(aes(group=1), colour="#000099", size=1) + 
   geom_abline(color="gray") +
   xlab("False Positive Rate") +
@@ -1098,7 +1106,7 @@ ev_df_m2 <- ggtexttable(ev_df_m2, rows = NULL, theme = ttheme(colnames.style = c
 
 
 m2_2_gini_plot <- ggplot(setNames(data.frame(m2_perf@x.values, m2_perf@y.values), c('x_val', 'y_val')), 
-                    aes(x = x_val, y = y_val), color=sort_criterion) + 
+                         aes(x = x_val, y = y_val), color=sort_criterion) + 
   geom_line(aes(group=1), colour="#000099", size=1) + 
   geom_abline(color="gray") +
   xlab("False Positive Rate") +
@@ -1123,12 +1131,12 @@ varImpPlot(m3, main="Random Forest: Variable Importance")
 
 
 ev_df_m3 <- data.frame(Gini = round(((slot(performance(m3_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                    AUC = round(performance(m3_pred, measure = "auc")@y.values[[1]]*100, 2))
+                       AUC = round(performance(m3_pred, measure = "auc")@y.values[[1]]*100, 2))
 
 ev_df_m3 <- ggtexttable(ev_df_m3, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
 
 m3_gini_plot <- ggplot(setNames(data.frame(m3_perf@x.values, m3_perf@y.values), c('x_val', 'y_val')), 
-                    aes(x = x_val, y = y_val), color=sort_criterion) + 
+                       aes(x = x_val, y = y_val), color=sort_criterion) + 
   geom_line(aes(group=1), colour="#000099", size=1) + 
   geom_abline(color="gray") +
   xlab("False Positive Rate") +
@@ -1153,12 +1161,12 @@ m3_pred <- prediction( m3_fitForest, train$target)
 m3_perf <- performance(m3_pred, "tpr", "fpr")
 
 ev_df_m3_1 <- data.frame(Gini = round(((slot(performance(m3_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                       AUC = round(performance(m3_pred, measure = "auc")@y.values[[1]]*100, 2))
+                         AUC = round(performance(m3_pred, measure = "auc")@y.values[[1]]*100, 2))
 
 ev_df_m3_1 <- ggtexttable(ev_df_m3_1, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
 
 m3_1_gini_plot <- ggplot(setNames(data.frame(m3_perf@x.values, m3_perf@y.values), c('x_val', 'y_val')), 
-                       aes(x = x_val, y = y_val), color=sort_criterion) + 
+                         aes(x = x_val, y = y_val), color=sort_criterion) + 
   geom_line(aes(group=1), colour="#000099", size=1) + 
   geom_abline(color="gray") +
   xlab("False Positive Rate") +
@@ -1180,12 +1188,12 @@ m4_perf <- performance(m4_pred,"tpr","fpr")
 
 
 ev_df_m4 <- data.frame(Gini = round(((slot(performance(m4_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                         AUC = round(performance(m4_pred, measure = "auc")@y.values[[1]]*100, 2))
+                       AUC = round(performance(m4_pred, measure = "auc")@y.values[[1]]*100, 2))
 
 ev_df_m4 <- ggtexttable(ev_df_m4, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
 
 m4_gini_plot <- ggplot(setNames(data.frame(m4_perf@x.values, m4_perf@y.values), c('x_val', 'y_val')), 
-                         aes(x = x_val, y = y_val), color=sort_criterion) + 
+                       aes(x = x_val, y = y_val), color=sort_criterion) + 
   geom_line(aes(group=1), colour="#000099", size=1) + 
   geom_abline(color="gray") +
   xlab("False Positive Rate") +
@@ -1205,12 +1213,12 @@ m5_pred <- prediction(m5_score, test$target)
 m5_perf <- performance(m5_pred, measure = "tpr", x.measure = "fpr")
 
 ev_df_m5 <- data.frame(Gini = round(((slot(performance(m5_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                         AUC = round(performance(m5_pred, measure = "auc")@y.values[[1]]*100, 2))
+                       AUC = round(performance(m5_pred, measure = "auc")@y.values[[1]]*100, 2))
 
 ev_df_m5 <- ggtexttable(ev_df_m5, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
 
 m5_gini_plot <- ggplot(setNames(data.frame(m5_perf@x.values, m5_perf@y.values), c('x_val', 'y_val')), 
-                         aes(x = x_val, y = y_val), color=sort_criterion) + 
+                       aes(x = x_val, y = y_val), color=sort_criterion) + 
   geom_line(aes(group=1), colour="#000099", size=1) + 
   geom_abline(color="gray") +
   xlab("False Positive Rate") +
@@ -1229,12 +1237,12 @@ m5_2_pred <- prediction(m5_2_score, test$target)
 m5_2_perf <- performance(m5_2_pred, measure = "tpr", x.measure = "fpr")
 
 ev_df_m5_2 <- data.frame(Gini = round(((slot(performance(m5_2_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                       AUC = round(performance(m5_2_pred, measure = "auc")@y.values[[1]]*100, 2))
+                         AUC = round(performance(m5_2_pred, measure = "auc")@y.values[[1]]*100, 2))
 
 ev_df_m5_2 <- ggtexttable(ev_df_m5_2, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
 
 m5_2_gini_plot <- ggplot(setNames(data.frame(m5_2_perf@x.values, m5_2_perf@y.values), c('x_val', 'y_val')), 
-                       aes(x = x_val, y = y_val), color=sort_criterion) + 
+                         aes(x = x_val, y = y_val), color=sort_criterion) + 
   geom_line(aes(group=1), colour="#000099", size=1) + 
   geom_abline(color="gray") +
   xlab("False Positive Rate") +
@@ -1303,11 +1311,8 @@ m6_pred <- prediction(m6_pred, test$target)
 m6_perf <- performance(m6_pred, measure = "tpr", x.measure = "fpr")
 
 ev_df_m6 <- data.frame(Gini = round(((slot(performance(m6_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                         AUC = round(performance(m5_2_pred, measure = "auc")@y.values[[1]]*100, 2))
+                       AUC = round(performance(m5_2_pred, measure = "auc")@y.values[[1]]*100, 2))
 
 ev_df_m6 <- ggtexttable(ev_df_m6, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
-
-
-
 
 
