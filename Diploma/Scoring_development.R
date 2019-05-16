@@ -1,7 +1,3 @@
-# https://gist.github.com/SylviaFeng/5646f65b50bd4fc230b30b63094409ee
-# 
-
-
 # Data manipulation
 library(plyr)
 library(dplyr)
@@ -383,7 +379,7 @@ Good<-sum(bin_data$target_for_calc)
 Bad<-Total-Good
 
 for (j in variable_fc_bin:bin_ncol) {
-
+  
   j <- grep("age_in_yrs_cat_Eq_depth", names(work_data))
   plot1_hist <- ggplot(bin_data, aes(bin_data[,j])) + 
     geom_bar(aes(y = (..count..)/sum(..count..)), fill = "steelblue4") +
@@ -458,7 +454,7 @@ for (j in variable_fc_bin:bin_ncol) {
   i <- i+1
   # union 4 object in one file: 
   print(ggarrange(title1, g, table , 
-                   ncol = 1, nrow = 3,heights = c(0.1, 0.3, 0.2)))
+                  ncol = 1, nrow = 3,heights = c(0.1, 0.3, 0.2)))
   
   dev.off() 
 }
@@ -482,17 +478,11 @@ iv_table$Strength <- ifelse(iv_table$IV>=1, "Suspicious",
 unique(bin_data$age_in_yrs_cat_Eq_depth)
 
 work_data[work_data$credit_amount_cat_eq_width==" [45;75]", 
-         grep("credit_amount_cat_eq_width", names(work_data))] <- "[11154.4;14789.2)"
+          grep("credit_amount_cat_eq_width", names(work_data))] <- "[11154.4;14789.2)"
 
 work_data[work_data$credit_amount_cat_eq_width=="[14789.2;18424]", 
           grep("age_in_yrs_cat_Eq_depth", names(work_data))] <- "[36;45)"
 
-credit_amount[credit_amount$IV==0.1707, 1] <- "credit_amount_cat_jenks"
-credit_amount[credit_amount$IV==0.1281, 1] <- "credit_amount_cat_eq_width"
-
-iv_table <- iv_table[iv_table$variables!="duration_month",]
-iv_table <- iv_table[iv_table$variables!="credit_amount",] 
-iv_table <- iv_table[iv_table$variables!="age_in_yrs",] 
 
 duration_month <- iv_table[grepl("duration_month", iv_table$variables)&
                              !grepl('hcl',iv_table$variables)&
@@ -520,8 +510,6 @@ table3 <- ggtexttable(age_in_yrs, rows = NULL, theme = ttheme(base_style ="lRedW
 
 tab3 <- table_cell_font(table3, row = 2, column = 2, face = "bold")
 
-work_data[,c(3,6,14)] <- NULL
-
 ### Modeling
 work_data <- work_data_if_smth_go_wrong
 work_data_if_smth_go_wrong <- work_data
@@ -539,11 +527,6 @@ train <- work_data[div_part_1,] # 70%
 # Test Sample
 test <- work_data[-div_part_1,] # 30% 
 table(test$target)
-
-work_datan$target <- as.integer(work_datan$target)
-work_datan$target <- ifelse(work_datan$target==2,1,0)
-table(work_datan$target)
-save(work_datan, file='work_data_modeling.rda')
 
 work_data <- work_datan
 #### Log regr
@@ -603,11 +586,11 @@ mod2_perf <- performance(mod2_pred,"tpr","fpr")
 
 ev_df_m2 <- data.frame(Gini = round(((slot(performance(mod2_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
                        AUC = round(performance(mod2_pred, measure = "auc")@y.values[[1]]*100, 2))
-ev_df_m2
+
 ev_df_m2 <- ggtexttable(ev_df_m2, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
 
-acc2 <- 79.33
-Gini2 <- 58.67
+acc2 <- 63.09
+Gini2 <- 81.54
 gini_plot <- ggplot(setNames(data.frame(mod2_perf@x.values, mod2_perf@y.values), c('x_val', 'y_val')), 
                     aes(x = x_val, y = y_val), color=sort_criterion) + 
   geom_line(aes(group=1), colour="#000099", size=1) + 
@@ -629,7 +612,6 @@ log(mod2$lambda.min)
 coef(mod2, s=mod2$lambda.min)
 
 
-
 ### CART
 set.seed(12)
 mod3 <- rpart(target~.,data=train,method=	"class")
@@ -641,7 +623,6 @@ mod3_perf <- performance(mod3_pred,"tpr","fpr")
 
 ev_df_mod3 <- data.frame(Gini = round(((slot(performance(mod3_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
                          AUC = round(performance(mod3_pred, measure = "auc")@y.values[[1]]*100, 2))
-ev_df_mod3
 
 ev_df_mod3 <- ggtexttable(ev_df_mod3, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
 
@@ -686,167 +667,29 @@ mod4_gini_plot <- ggplot(setNames(data.frame(mod4_perf@x.values, mod4_perf@y.val
   scale_x_continuous(breaks=seq(0,1,0.2)) +
   scale_y_continuous(breaks=seq(0,1,0.2)) +
   theme(legend.position ="none")
-  
-
-### GB
-
-###############################################################################
-## testing 
-work_data_num <- read.csv2("https://raw.githubusercontent.com/Sokolheavy/R_Scoring/master/Diploma/german-numeric.csv")
-work_data_num[,25] <- ifelse(work_data_num[,25]==1,1,0)
-names(work_data_num) <- c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12','V13',
-                          'V14','V15','V16','V17','V18','V19','V20','V21','V22','V23','V24','target')
-
-set.seed(123)
-div_part_1 <- createDataPartition(y = work_data_num$target, p = 0.7, list = F)
-train <- work_data_num[div_part_1,] # 70% 
-test <- work_data_num[-div_part_1,] # 30% 
-
-trainm <- sparse.model.matrix(target ~ ., data = train) 
-testm <- sparse.model.matrix(target~., data = test)
-
-ytr = train[,"target"]
-xtr = xgb.DMatrix(data = as.matrix(trainm), label = ytr)
-
-yte = test[,"target"]
-xte = xgb.DMatrix(data = as.matrix(testm), label = yte)
 
 
-xgb <- xgb.train(params = xgb_params,
-                 data = xtr,
-                 nrounds = 500, 
-                 watchlist = watchlist, # can see all rounds of losses
-                 eta = 0.001, # learning rate 
-                 max.depth = 3, # depth of trees
-                 gamma = 0, # larger value - more conservative algoritm  
-                 subsample = 1, # proc splits - test/train
-                 colsample_bytree = 1, 
-                 missing = NA,
-                 seed = 333)
+### RF 
+ntree <- c(100, 200)
+mtry <- c(10,14)
+nodesize < c(2,4)
+k <- 10
+n <- floor(nrow(german_credit)/k)
+rf_accuracy_poss <- c()
+rf_accuracy_all=data.frame("Trees" = integer(0),"Variables"=integer(0),
+                           "Nodesize" = integer(0), "Acc"= numeric(0))
 
-#computing classification rate in training set
-y_pred = predict(xgb, xtr)[1:700]
-y_train = rep(0,length(y_pred))
-for(i in 1:length(y_pred)){
-  if(y_pred[i]<=0.5){y_train[i]=0}
-  else{y_train[i]=1}
-}
-
-test_resultte = table(y_train,ytr)
-acc_train = (test_resultte[1,1]+test_resultte[2,2])/sum(test_resultte)
-gini_train <- 2*acc_train - 1
-gini_train
-
-#computing classification rate in testing set
-y_pred = predict(xgb, xte)
-y_test = rep(0,length(y_pred))
-for(i in 1:length(y_pred)){
-  if(y_pred[i]<=0.5){y_test[i]=0}
-  else{y_test[i]=1}
-}
-test_result4 = table(y_test,yte)
-acc_test = (test_result4[1,1]+test_result4[2,2])/sum(test_result4)
-gini_test <- 2*acc_test - 1
-gini_test
-gini_train
-
-View(xgb)
-
-par(mar=c(1,1,1,1))
-# Training & test error plot
-e <- data.frame(xgb$evaluation_log)
-
-plot(e$iter, e$train_mlogloss, col = 'blue')
-lines(e$iter, e$test_mlogloss, col = 'red')
-
-p <- predict(xgb, newdata = xtr, type = "response")
-
-
-## for diploma
-
-
-
-### second iteration 
-trainm <- sparse.model.matrix(target ~ ., data = train_num)
-train_label <- train_num[,"target"]
-train_matrix <- xgb.DMatrix(data = as.matrix(trainm), label = train_label)
-
-testm <- sparse.model.matrix(target~., data = test_num)
-test_label <- test_num[,"target"]
-test_matrix <- xgb.DMatrix(data = as.matrix(testm), label = test_label)
-
-xgb = xgboost(data = train_matrix, 
-              eta = 0.1,
-              max_depth = 5, 
-              gamma = 0,
-              objective = "binary:logistic",
-              nrounds = 15, 
-              subsample = 0.8,
-              colsample_bytree = 0.8,
-              seed = 1,
-              eval_metric = "error")
-
-par(mar=c(1,1,1,1))
-# Training & test error plot
-e <- data.frame(xgb$evaluation_log)
-
-
-
-png(filename="GBM2.png", res=150, width = 1000, height = 1000)
-plot(e$iter, e$train_mlogloss, col = 'blue')
-lines(e$iter, e$test_mlogloss, col = 'red')
-dev.off()
-
-
-
-imp <- xgb.importance(colnames(train_matrix), model = bst_model)
-print(imp)
-
-xgb.plot.importance(imp)
-
-pred_target <- predict(object = model, type = "response")
-
-# add values for perfomance plots(only for calc)
-pred <- prediction(pred_target, train[-s[[k]], measurevar])
-
-# Prediction & confusion matrix - test data
-p <- predict(xgb, newdata = test_matrix, type = "response")
-
-pred <- matrix(p, nrow = nc, ncol = length(p)/nc) %>%
-  t() %>%
-  data.frame() %>%
-  mutate(label = test_label, max_prob = max.col(., "last")-1)
-
-auc <- mean(pred$label==pred$max_prob)
-gini <- auc*2 -1
-gini
-
-
-
-####################################################################
-
-### RF ###
-test$mod6_score <- NULL
-ntree = c(600,800)
-mtry = c(11,13)
-nodesize = c(4,5)
-k=10
-n=floor(nrow(german_credit)/k)
-rf_accuracy_poss=c()
-rf_accuracy_all=data.frame("No_of_Trees" = integer(0),"No_of_features"=integer(0),
-                           "Nodesize" = integer(0), "Accuracy"= numeric(0))
-#using 10-fold cross validation
-for (t in ntree){
+for (z in ntree){
   for (m in mtry){
     for (n in nodesize){
       for (i in 1:k){
         rf_fit<-randomForest(x=train[,-c(1)], y = as.factor(train[,c(1)]), 
-                             ntree = t, mtry = m, nodesize = n)
+                             ntree = z, mtry = m, nodesize = n)
         rf_pred <- predict(rf_fit, test, type = "prob")[,2]
         rf_pred_class <- ifelse(rf_pred>0.5, 1, 0)
         rf_accuracy_poss[i]<- 1 - sum(test$target!=rf_pred_class)/nrow(test)
       } 
-      print(paste("number of trees: ",t,"number of features: ", m, "nodesize :", n,
+      print(paste("Trees: ",z,"Variables: ", m, "Nodesize :", n,
                   "Cross-Validation mean Accuracy",mean(rf_accuracy_poss)))
       rf_accuracy_all<- rbind(rf_accuracy_all, data.frame(t,m,n,mean(rf_accuracy_poss)))
     }
@@ -854,35 +697,35 @@ for (t in ntree){
 }
 
 
-#Building the model using the best parameters
+
 work_datan <- work_data_num
-i <- 1
-k=10
-n=floor(nrow(work_datan)/k)
-rf_accuracy<-c()
-for (i in 1:k){
-  s1 = ((i-1)*n+1)
-  s2 = (i*n)
-  subset = s1:s2
-  rf_train<- work_datan[-subset,]
-  rf_test<- work_datan[subset,]
-  rf_fit<-randomForest(x=rf_train[,-c(1)], y = as.factor(rf_train[,c(1)]),
+j <- 1
+k<-10
+n<-floor(nrow(work_datan)/k)
+rf_acc<-c()
+for (j in 1:k){
+  d1 = ((j-1)*n+1)
+  d2 = (j*n)
+  dataset = d1:d2
+  rf_tr<- work_datan[-dataset,]
+  rf_te<- work_datan[dataset,]
+  rf_fit<-randomForest(x=rf_tr[,-c(1)], y = as.factor(rf_tr[,c(1)]),
                        ntree = 200, mtry = 3, nodesize = 6)
-  rf_pred <- predict(rf_fit, rf_test, type = "prob")[,2]
-  rf_pred2 <- prediction(rf_pred, rf_test$target)
+  rf_pred <- predict(rf_fit, rf_te, type = "prob")[,2]
+  rf_pred2 <- prediction(rf_pred, rf_te$target)
   rf_perf <- performance(rf_pred2,"tpr","fpr")
   Gini = round(((slot(performance(rf_pred2, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2)
   ACC = round(performance(rf_pred2, measure = "auc")@y.values[[1]]*100, 2)
   
   print(paste("RF Accuracy: ", ACC))
-  rf_accuracy[i]<- ACC
+  rf_acc[j]<- ACC
 }
 
 rf_acc1 <- data.frame(acc=c(83.68, 74.53, 82.42, 81.51, 75.33, 84.30, 70.11, 82.87, 81.63, 77.73))
 rf_acc1_m <- mean(rf_acc1$acc)
 
 ev_df_m6_1 <- data.frame(Gini = rf_acc1_m*2-100, AUC = rf_acc1_m)
-ev_df_m6_1 <- ggtexttable(ev_df_m6_1, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
+ev_df_m6_1 <- ggtexttable(ev_df_m6_1, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10), rows = NULL)
 
 
 # ntree = 1000, mtry = 15, nodesize = 6)
@@ -892,47 +735,54 @@ rf_acc2_m <- mean(rf_acc2$acc)
 acc6 = rf_acc2_m
 Gini6 = rf_acc2_m*2-100
 ev_df_m6_2 <- data.frame(Gini = rf_acc2_m*2-100, AUC = rf_acc2_m)
-ev_df_m6_2 <- ggtexttable(ev_df_m6_2, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
+ev_df_m6_2 <- ggtexttable(ev_df_m6_2, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10), rows = NULL)
 
 
 # GB
 work_data_num <- data.frame(target=work_data_num$target, work_data_num[,-25])
-cv.nfold <- 10
-n=floor(nrow(work_data_num)/cv.nfold)
+j <- 1
+k<-10
+n<-floor(nrow(work_datan)/k)
+p <- ()		
 #passing different sets of parameters using expand.grid
-params<-expand.grid(nround = c(200),#200,#300
-                    eta=c(0.1),#0.1,0.2
-                    gamma= c(1),#2,3
-                    max_depth=c(6),#7,8
-                    min_child_weight = c(1),#2,3
+parameters <- expand.grid(nround = c(200),#400,#500
+                    eta=c(0.1),#0.01,0.02
+                    gamma= c(1),#2,4
+                    max_depth=c(6),#7,9
+                    min_child_weight = c(1),#2,4
                     subsample = c(1),
                     colsample_bytree = c(0.8),
                     num_parallel_tree = c(500))
 
-p=data.frame("nround" = integer(0),"max_depth"=integer(0),
-             "eta"=integer(0), "gamma"=integer(0), "min_child_weight"=integer(0),
-             "subsample"=integer(0),"colsample_bytree"=integer(0),
-             "num_parallel_tree"= integer(0),"Accuracy"= numeric(0))
+p=data.frame("nround" = integer(0),
+             "max_depth"=integer(0),
+             "eta"=integer(0), 
+             "gamma"=integer(0), 
+             "min_child_weight"=integer(0),
+             "subsample"=integer(0),
+             "colsample_bytree"=integer(0),
+             "num_parallel_tree"= integer(0),
+             "Acc"= numeric(0))
 
 
-# tuning the parameters 		 
-for (k in 1:nrow(params)) {
+ 
+for (k in 1:nrow(parameters)) {
   xgb_acc=c()
-  for (i in 1:cv.nfold){
-    s1 = ((i-1)*n+1)
-    s2 = (i*n)
-    subset = s1:s2
+  for (j in 1:k){
+    d1 = ((j-1)*n+1)
+    d2 = (j*n)
+    dataset = d1:d2
     data_m <- sparse.model.matrix(target ~ .-1, data = work_data_num)
-    x_train<- data_m[-subset,]
-    x_test<- data_m[subset,]
-    y_train<-work_data_num[-subset,c(1)]
-    y_train<-as.integer(y_train)
-    y_test<-work_data_num[subset,c(1)]
-    y_test<-as.integer(y_test)
-    dxgb_train <- xgb.DMatrix(data = x_train, label = y_train)
-    prm <- params[k,]
+    x_tr<- data_m[-dataset,]
+    x_te<- data_m[dataset,]
+    y_tr<-work_data_num[-dataset,c(1)]
+    y_tr<-as.integer(y_tr)
+    y_te<-work_data_num[dataset,c(1)]
+    y_te<-as.integer(y_te)
+    dxgb_train <- xgb.DMatrix(data = x_train, label = y_tr)
+    prm <- parameters[k,]
     n_proc <- detectCores()
-    md <- xgb.train(data = dxgb_train, nthread = n_proc, 
+    mod7 <- xgb.train(data = dxgb_train, nthread = n_proc, 
                     objective = "binary:logistic",
                     nround = prm$nround, 
                     max_depth = prm$max_depth, 
@@ -944,8 +794,8 @@ for (k in 1:nrow(params)) {
                     eval_metric = "error",
                     early_stop_round = 100, printEveryN = 100,
                     num_parallel_tree = prm$num_parallel_tree)
-    xgb_pred <- predict(md, x_test)
-    xgb_pred2 <- prediction(xgb_pred, y_test)
+    xgb_pred <- predict(mod7, x_test)
+    xgb_pred2 <- prediction(xgb_pred, y_te)
     xgb_perf <- performance(xgb_pred2,"tpr","fpr")
     Gini = round(((slot(performance(xgb_pred2, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2)
     ACC = round(performance(xgb_pred2, measure = "auc")@y.values[[1]]*100, 2)
@@ -955,16 +805,24 @@ for (k in 1:nrow(params)) {
     
     print(xgb_acc[i])
   }
-  p<-rbind(p,data.frame(prm$nround, prm$max_depth, prm$eta, prm$gamma, prm$min_child_weight, 
-                        prm$subsample, prm$colsample_bytree,mean(xgb_acc)))
-  print (p)
+  
+  p <- rbind(p,data.frame(prm$nround, 
+                        prm$max_depth, 
+                        prm$eta, 
+                        prm$gamma, 
+                        prm$min_child_weight, 
+                        prm$subsample, 
+                        prm$colsample_bytree,
+                        mean(xgb_acc)))
+  print(p)
 }
+
 
 rf_acc1 <- data.frame(acc=c(83.68, 74.53, 82.42, 81.51, 75.33, 84.30, 70.11, 82.87, 81.63, 77.73))
 rf_acc1_m <- mean(rf_acc1$acc)
 
 ev_df_m6_1 <- data.frame(Gini = rf_acc1_m*2-100, AUC = rf_acc1_m)
-ev_df_m6_1 <- ggtexttable(ev_df_m6_1, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
+ev_df_m6_1 <- ggtexttable(ev_df_m6_1, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10), rows = NULL)
 
 
 # ntree = 1000, mtry = 15, nodesize = 6)
@@ -974,7 +832,7 @@ rf_acc2_m <- mean(rf_acc2$acc)
 acc6 = rf_acc2_m
 Gini6 = rf_acc2_m*2-100
 ev_df_m6_2 <- data.frame(Gini = rf_acc2_m*2-100, AUC = rf_acc2_m)
-ev_df_m6_2 <- ggtexttable(ev_df_m6_2, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
+ev_df_m6_2 <- ggtexttable(ev_df_m6_2, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10), rows = NULL)
 
 
 gb_acc1 <- data.frame(acc = c(0.7878788,
@@ -999,22 +857,22 @@ gb_acc2 <- data.frame(acc = c(82.38,76.38, 79.06, 79.32, 74.80, 84.73, 75.84, 80
 gb_acc2_m <- mean(gb_acc2$acc)
 Gini7 = gb_acc2_m*2-100
 ev_df_m7_2 <- data.frame(Gini = gb_acc2_m*2-100, AUC = gb_acc2_m)
-ev_df_m7_2 <- ggtexttable(ev_df_m7_2, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
+ev_df_m7_2 <- ggtexttable(ev_df_m7_2, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10), rows = NULL)
 
 acc7 = gb_acc2_m
 Gini7 = gb_acc2_m*2-100
 
-       
+
 ### Comparision
 models <- c('Logistic regression',
             'LASSO',
-           'CART',
-           'C5.0',
-           'Random forest',
-           'Gradient boosting')
+            'CART',
+            'C5.0',
+            'Random forest',
+            'Gradient boosting')
 
 models_Gini <- c(Gini1, Gini2, Gini3, Gini4, 
-                  Gini6, Gini7)
+                 Gini6, Gini7)
 
 
 models_acc <- c(acc1, acc2, acc3, acc4, 
@@ -1027,60 +885,3 @@ ev_df <- ggtexttable(ev_df, rows = NULL,
                      theme = ttheme(
                        colnames.style = colnames_style(fill = "white"),
                        tbody.style = tbody_style(fill = get_palette("RdBu", 6))))
-                     
-                     theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-work_data_num <- read.csv2("https://raw.githubusercontent.com/Sokolheavy/R_Scoring/master/Diploma/german-numeric.csv")
-names(work_data_num) <- c('V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12','V13',
-                          'V14','V15','V16','V17','V18','V19','V20','V21','V22','V23','V24','target')
-
-table(work_data_num$target)
-work_data_num$target <- ifelse(work_data_num$target==1,1,0)
-set.seed(123)
-div_part_1 <- createDataPartition(y = work_data_num$target, p = 0.7, list = F)
-train <- work_data_num[div_part_1,] # 70% 
-test <- work_data_num[-div_part_1,] # 30% 
-
-mat1 <- model.matrix(target ~ . , data = train  ) # convert to numeric matrix
-mat2 <- model.matrix(target ~ . , data = test  )  # convert to numeric matrix
-
-mod2 <-cv.glmnet(mat1,as.numeric(train$target), alpha=1, family="binomial", type.measure = 'auc')
-
-
-# Apply model to testing dataset
-mod2_score1 <- predict(mod2,type="response", newx =mat2, s = 'lambda.min')
-mod2_pred1 <- prediction(mod2_score1, test$target)
-
-
-ev_df_m2 <- data.frame(Gini = round(((slot(performance(mod2_pred1, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
-                       AUC = round(performance(mod2_pred1, measure = "auc")@y.values[[1]]*100, 2))
-
-ev_df_m2
-ev_df_m2 <- ggtexttable(ev_df_m2, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
