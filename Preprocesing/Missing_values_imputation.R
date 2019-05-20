@@ -281,6 +281,78 @@ df23$Sepal.Length_imp<-NULL
 
 
 
+library(mice)
+library(lattice)
+
+data(nhanes)
+
+### Check missing data
+# [%,#] missing
+options(scipen = 99)
+kable(data.frame(obs = nrow(work_data),
+                 qty_NA = colSums(sapply(work_data, is.na)),
+                 prop_NA = colSums(sapply(work_data, is.na))/nrow(work_data)), digits = 3)
+
+work_data %>%
+  missing_plot()
+
+
+nhanes.imp <- mice(nhanes, m = 5, method = 'pmm')
+
+# Show imputation 3
+head(complete(nhanes.imp, 3))
+
+# Extract the "tall" matrix which stacks the imputations
+nhanes.comp <- complete(nhanes.imp, "long", include = TRUE)
+
+
+table(nhanes.comp$.imp)
+
+
+# Let's visualize the distribution of imputed and observed values.
+# `cci` returns logical whether its input is complete at each observation. 
+nhanes.comp$bmi.NA <- cci(nhanes$bmi)
+
+# Note that the above uses the recylcing properties of matrixes/data.frame:
+#  The `cci` call returns length 25; but because values are recylced to the total
+#  number of rows in nhanes.comp, it replicates 6 times.
+
+head(nhanes.comp[, c("bmi", "bmi.NA")])
+
+
+ggplot(nhanes.comp, 
+       aes(x = .imp, y = bmi, color = bmi.NA)) + 
+  geom_jitter(show.legend = FALSE, 
+              width = .1)
+
+
+with(nhanes.imp, mean(bmi))
+
+with(nhanes.imp, t.test(bmi ~ hyp))
+
+densityplot(nhanes.imp, ~bmi)
+
+##########################################################################################
+# Here we can alo use the stripplot function of the mice pkg to check diagnostics visually
+# using a jittered stripplot of the data
+# Blue = Original Data, Red = Imputed Data
+# 0 = Orignial Dataset, 1 = Imputed Dataset
+# The distributions of the imputed data look somewhat similar to the original...
+#################################################################################
+
+stripplot(data.frame(nhanes.comp), bmi ~.imp, cex=c(2,4), pch=c(1,20),jitter=TRUE,layout=c(1,1))
+stripplot(impTrainData, Family_Hist_5 ~.imp, cex=c(2,4), pch=c(1,20),jitter=TRUE,layout=c(1,1))
+stripplot(impTrainData, Family_Hist_3 ~.imp, cex=c(2,4), pch=c(1,20),jitter=TRUE,layout=c(1,1))
+stripplot(impTrainData, Family_Hist_2 ~.imp, cex=c(2,4), pch=c(1,20),jitter=TRUE,layout=c(1,1))
+stripplot(impTrainData, Insurance_History_5 ~.imp, cex=c(2,4), pch=c(1,20),jitter=TRUE,layout=c(1,1))
+stripplot(impTrainData, Family_Hist_4 ~.imp, cex=c(2,4), pch=c(1,20),jitter=TRUE,layout=c(1,1))
+stripplot(impTrainData, Employment_Info_6 ~.imp, cex=c(2,4), pch=c(1,20),jitter=TRUE,layout=c(1,1))
+stripplot(impTrainData, Employment_Info_4 ~.imp, cex=c(2,4), pch=c(1,20),jitter=TRUE,layout=c(1,1))
+stripplot(impTrainData, Employment_Info_1 ~.imp, cex=c(2,4), pch=c(1,20),jitter=TRUE,layout=c(1,1))
+stripplot(impTrainData, Medical_History_1 ~.imp, cex=c(2,4), pch=c(1,20),jitter=TRUE,layout=c(1,1))
+
+
+
 
 
 
