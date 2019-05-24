@@ -197,3 +197,42 @@ View(data)
 data[1:2,2]<-NaN
 t<-data[,2]
 t[is.infinite(t) | is.nan(t)] <- NA
+
+
+
+
+# gsub (remove unuseles symbol)
+
+"hello".gsub(/[aeiou]/, '*')                  #=> "h*ll*"
+"hello".gsub(/([aeiou])/, '<\1>')             #=> "h<e>ll<o>"
+"hello".gsub(/./) {|s| s.ord.to_s + ' '}      #=> "104 101 108 108 111 "
+"hello".gsub(/(?<foo>[aeiou])/, '{\k<foo>}')  #=> "h{e}ll{o}"
+'hello'.gsub(/[eo]/, 'e' => 3, 'o' => '*')    #=> "h3ll*"
+
+# replace /ll/ with itself
+'hello'.gsub(/ll/, '\0') # returns 'hello'
+'hello'.gsub(/ll/, "\0") # returns 'he\000o'
+
+v = "Foo Bar!"  # Target: Foo\ Bar\!
+# Resulting strings will not be quoted to decrease
+# the amount of backslashes. Compare \\! to "\\\\!"
+
+v.gsub(/\W/, '\0') #=> Foo Bar!
+
+# \\ escapes to a literal \, which next to the 0 becomes \0
+v.gsub(/\W/, '\\0') #=> Foo Bar!
+
+# \\\0, means "\ \0", or "escaped \0"
+v.gsub(/\W/, '\\\0') #=> Foo\0Bar\0
+
+# Same mechanism as before. \\ → \
+v.gsub(/\W/, '\\\\0') #=> Foo\0Bar\0
+
+# Finally! We have now an escaped \ before \0 and
+# we get the results we want.
+v.gsub(/\W/, '\\\\\0') #=> Foo\ Bar\!
+
+# It's very tempting to just write it like this now, right?
+v.gsub(/\W/) { |m| "\\#{m}" } #=> Foo\ Bar\!
+# It might not be shorter, but anyone can understand it.
+
