@@ -59,6 +59,8 @@ full$Sex <- as.factor(full$Sex)
 full$Survived <- as.factor(full$Survived)
 full$Pclass <- as.ordered(full$Pclass)
 
+sum(duplicated(train))
+sum(duplicated(test))
 options( warn = -1 )
 
 str(full)
