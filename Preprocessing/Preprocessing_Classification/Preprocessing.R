@@ -96,6 +96,33 @@ prop.1 <- with(full, table(Survived, Fsize)) %>%
 prop.2 <- with(full, table(Survived, Fsize)) %>% 
   prop.table(margin = 2)
 
+
+
+num_format <- function(l) {
+  # turn in to accounting format
+  l <- format(l, scientific = F,big.mark = ",")
+  # return formatted number
+  l
+}
+
+outlier_treatment <- function(x) {
+  x[x>quantile(x,.95,na.rm = T)]<-quantile(x,.95,na.rm = T)
+  x[x<quantile(x,.05,na.rm = T)]<-quantile(x,.05,na.rm = T)
+  x
+}
+
+
+## different type of plots
+
+p1 <- ggplot(train, aes(x= Age, color= Survived))+ geom_freqpoly()+ scale_color_brewer(palette="Set1")
+p2 <- ggplot(train, aes(x= Sex, fill= Survived))+ geom_bar()+ scale_fill_brewer(palette="Set2")
+p3 <- ggplot(train, aes(x= Pclass, fill= Survived))+ geom_bar()+ scale_fill_brewer(palette="Set3")
+p4 <- ggplot(train, aes(x= Embarked, fill= Survived))+ geom_bar()+ scale_fill_brewer(palette="Dark2")
+p5 <- ggplot(train, aes(x= SibSp, fill= Survived))+ geom_bar(stat='count',position='fill')+ scale_fill_brewer(palette="Accent")
+p6 <- ggplot(train, aes(x= Fare, color= Survived))+ geom_freqpoly()+ scale_color_brewer(palette="Set1")
+p7 <- ggplot(train, aes(x= Parch, fill= Survived))+ geom_bar(stat='count',position='fill')+ scale_fill_brewer(palette="Set1")
+grid.arrange(p1,p2,p3,p4,p5,p6,p7, ncol=2)
+
 #______________________________________________________________________________
 #_____________________________Exploratory Analysis_____________________________
 #______________________________________________________________________________
