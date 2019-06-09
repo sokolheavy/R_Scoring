@@ -21,3 +21,9 @@ h2o_kmeans@model$centers       # The centers for each cluster
 
 
 gap_stat <- h2o.gapStatistic(data = h2o_kmeans, K = 10, B = 100, boot_frac = .1)
+
+final <- data.frame(cluster = h2o_cluster, data_cluster)
+
+
+
+prop.table(table(final$cluster))
