@@ -365,3 +365,48 @@ data_cluster_subset[pam_fit$medoids, ]
 
 train_first <- train
 write.csv2(train_first, file = 'train_first.csv')
+
+
+
+
+
+install.packages("rioja")
+
+library(rioja) 
+
+data(RLGH)
+data(SWAP)
+result <- compare.datasets(RLGH$spec, SWAP$spec)
+result
+
+
+plot.compare.datasets(RLGH$spec, SWAP$spec)
+
+
+set.seed(1001)
+x<- sample(1:1000, 100)
+
+library(caret)
+folds <- createDataPartition(x, times=5, p = 0.1) 
+
+# Установить pbmcapply
+install.packages("pbmcapply")
+library(pbmcapply)
+
+
+
+
+pbmclapply(1:10, func)
+
+
+
+
+
+
+
+
+sil_width<-c(NA)
+for (i in 2:10) {
+  pam_fit<-pam(dist_Matrix,diss = TRUE, k = i) 
+  sil_width[i]<-pam_fit$silinfo$avg.width
+}
