@@ -1,21 +1,24 @@
 setwd("F:/scoring/R_cases/job_task_1")
 
 #______ Package + Data ______ 
+install.packages("PCAmixdata")
 
-install.packages('jsonlite')
-library(DT)
-library(jsonlite)
-library(ggplot2)
+# Data manipulation & visualization
 library(dplyr)
-library(skmeans)
-library(gridExtra)
-library(readr)
-library(DataExplorer)
 library(lubridate)
 library(data.table)
-library(lubridate)
-library(openxlsx)
-library(agricolae)
+library(DT)
+library(ggplot2)
+library(gridExtra)
+library(DataExplorer)
+library(knitr)
+library(data.table)
+
+ #clusterization
+library(cluster)
+library(StatMatch)
+library(doParallel)
+
 
 ## read the data
 dataset <- fread('data_cluster.csv', header=T)
@@ -32,9 +35,6 @@ plot_missing(work_data)
 
 
 
-datatable(work_data[1:1000, ])
-
-
 #______ Exploratory Analysis ______ 
 
 work_data <- dataset[,-6]
@@ -43,8 +43,7 @@ names(work_data)[c(3,4,5)] <- c('gun_type', 'gun_power', 'target')
 dist_userset <- work_data %>%
       group_by(user_id) %>%
       summarise(qty=n(), 
-                proc_win = sum(target)/n(),
-                qty_win = sum(target)) %>%
+                proc_win = sum(target)/n()) %>%
       arrange(desc(qty))
 
 
@@ -230,23 +229,139 @@ left_join(work_data[, c("gun_type", "user_id")],  gun_type_summary[, c("gun_type
 
 prop.table(table(dist_userset$mostGunClass))
 
+png(filename="data_cluster.png", res=150, width = 1000, height = 1000)
+plot(data_cluster)
+dev.off()
 
-get_difference <- function(test_data, n_cluster){    
-  dist_matrix <- dist(test_data)    
-  fit <- hclust(dist_matrix)    
-  test_data$cluster <- as.factor(cutree(fit, n_cluster))    
-  p_val <- sapply(test_data[,-ncol(test_data)],    
-                  function(x) {summary(aov(x~cluster, test_data))[[1]][1,'Pr(>F)']})    
-  return(names(p_val)[p_val < 0.05])    
-}
 
-get_difference(dist_userset[,-1], 5)
 
+
+rm(dataset)
+rm(day_max_activity_user)
+rm(day_max_activity_user2)
+rm(gun_power_summary)
+rm(gun_type_by_power)
+rm(gun_type_summary)
+rm(work_data)
 gc()
 
-dist_matrix <- dist(dist_userset)    
-fit <- hclust(dist_matrix)    
-test_data$cluster <- as.factor(cutree(fit, n_cluster))    
-p_val <- sapply(test_data[,-ncol(test_data)],    
-                function(x) {summary(aov(x~cluster, test_data))[[1]][1,'Pr(>F)']})    
-return(names(p_val)[p_val < 0.05])    
+
+### Clustering 
+
+write.csv2(dist_userset, file = 'dist_userset.csv')
+# dist_userset <- read.csv2('dist_userset.csv')
+data_cluster <- as.data.frame(dist_userset[,-c(5)])
+
+# All variables should have 'factor' type, so convert variables, that not is a 'factor', to 'factor' 
+data_cluster$mostDay <- as.factor(data_cluster$mostDay)
+data_cluster$mostGunClass <- as.factor(data_cluster$mostGunClass)
+
+set.seed(123)
+data_cluster_subset <- data_cluster[sort(sample(nrow(data_cluster), nrow(data_cluster)*.1)),-1] # 10% here
+
+train <- data_cluster_subset[,-1]
+
+# Data preparation
+for(i in 2:length(colnames(train))) {
+  if(class(train[,i]) == "numeric" | class(train[,i]) == "integer") {
+    train[,i] <- as.vector(scale(train[,i])) }
+}
+
+
+# Function to parallize the computation of distance-matrices
+computeDistance <- function(dt1, dt2, nThreads = 4) {
+  # Determine chunk-size to be processed by different threads
+  s <- floor(nrow(dt1) / nThreads)
+  
+  # Setup multi-threading
+  modelRunner <- makeCluster(nThreads)
+  registerDoParallel(modelRunner)
+  
+  # For numeric variables, build ranges (max-min) to be used in gower-distance.
+  # Ensure that the ranges is computed on the overall data and not on
+  # the chunks in the parallel threads. Also, note that function 'gower.dist()'
+  # seems to be buggy in regards to missing values (NA), which can be fixed by
+  # providing ranges for all numeric variables in the function-call
+  dt <- rbind(dt1, dt2)
+  rngs <- rep(NA, ncol(dt))
+  for (i in 1:ncol(dt)) {
+    col <- dt[[i]]
+    if (is.numeric(col)) {
+      rngs[i] <- max(col, na.rm = T) - min(col, na.rm = T)
+    }
+  }
+  
+  # Compute distance in parallel threads; note that you have to include packages
+  # which must be available in the different threads
+  distanceMatrix <-
+    foreach(
+      i = 1:nThreads, .packages = c("StatMatch"), .combine = "rbind",
+      .export = "computeDistance", .inorder = TRUE
+    ) %dopar% {
+      # Compute chunks
+      from <- (i - 1) * s + 1
+      to <- i * s
+      if (i == nThreads) {
+        to <- nrow(dt1)
+      }
+      
+      # Compute distance-matrix for each chunk
+      distanceMatrix <- gower.dist(dt1[from:to,], dt2, rngs = rngs)
+    }
+  
+  # Clean-up
+  stopCluster(modelRunner)
+  return(distanceMatrix)
+}
+
+
+
+dist_Matrix <- computeDistance(train, train)
+
+gower_mat<-as.matrix(dist_Matrix)
+
+
+# Output most similar pair
+train[
+  which(gower_mat == min(gower_mat[gower_mat != min(gower_mat)]),
+        arr.ind = TRUE)[1, ], ]
+
+# Output most dissimilar pair
+train[
+  which(gower_mat == max(gower_mat[gower_mat != max(gower_mat)]),
+        arr.ind = TRUE)[1, ], ]
+
+
+# Clustering Algorithm: Partitioning around medoids (PAM)
+# calculating silhoutte width for several k
+sil_width<-c(NA)
+for (i in 2:10) {
+  pam_fit<-pam(dist_Matrix,diss = TRUE, k = i) 
+  sil_width[i]<-pam_fit$silinfo$avg.width
+}
+
+
+# Plotting Silhouette width (higher is better)
+plot(1:10,sil_width)
+
+
+
+# Pick the number of cluster with the highest silhoutte width
+pam_fit<-pam(dist_Matrix,diss = TRUE, k = 4)
+
+data_cluster_subset <- mutate(data_cluster_subset, cluster = pam_fit$clustering)
+
+pam_results <- train %>%
+  mutate(cluster = pam_fit$clustering) %>%
+  group_by(cluster) %>%
+  do(the_summary = summary(.))
+
+pam_results$the_summary
+
+
+# The medoids for the clusters
+data_cluster_subset[pam_fit$medoids, ]
+
+
+train_first <- train
+write.csv2(train_first, file = 'train_first.csv')
