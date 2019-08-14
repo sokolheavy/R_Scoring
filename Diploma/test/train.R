@@ -291,4 +291,30 @@ rf60 <- randomForest(Class~., data = train)
 # Prediction & Confusion Matrix - Test
 p <- predict(rf60, test)
 confusionMatrix(p, test$Class)
+                           
+                           
+                           
+                           
+                           
+                           
+                           
+                           
+   ## Stratified Random Sampling(test, train)
+set.seed(123)
+div_part_1 <- createDataPartition(y = work_data$Status, p = 0.1, list = F)
+test1 <- work_data[div_part_1,]
+
+set.seed(456)
+div_part_2 <- createDataPartition(y = work_data$Status[-div_part_1], p = 0.111, list = F)
+test2 <- work_data[div_part_2,]
+
+set.seed(789)
+div_part_3 <- createDataPartition(y = work_data$Status[-c(div_part_1,div_part_2)], p = 0.124, list = F)
+test3 <- work_data[div_part_3,]
+
+prop.table(table(test1$Status))
+prop.table(table(test2$Status))
+prop.table(table(test3$Status))
+
+                        
 
