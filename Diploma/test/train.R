@@ -315,6 +315,49 @@ test3 <- work_data[div_part_3,]
 prop.table(table(test1$Status))
 prop.table(table(test2$Status))
 prop.table(table(test3$Status))
+                           
+                           
+                           
+                           
+
+library(Boruta)
+
+set.seed(123)
+div_part_1 <- createDataPartition(y = work_data$Status, p = 0.1, list = F)
+test1 <- work_data[div_part_1,]
+
+set.seed(456)
+div_part_2 <- createDataPartition(y = work_data$Status[-div_part_1], p = 0.111, list = F)
+test2 <- work_data[div_part_2,]
+
+set.seed(789)
+div_part_3 <- createDataPartition(y = work_data$Status[-c(div_part_1,div_part_2)], p = 0.124, list = F)
+test3 <- work_data[div_part_3,]
+
+prop.table(table(test1$Status))
+prop.table(table(test2$Status))
+prop.table(table(test3$Status))
+
+
+# Feature Selection
+set.seed(111)
+boruta <- Boruta(Status ~ ., data = test1, doTrace = 2)
+save(boruta, file = 'boruta.rda')
+print(boruta)
+
+
+norm_100  <- function(x){
+  round((x-min(x))/(max(x)-min(x))*100, 2)
+  } 
+  
+
+Boruta_selection <- data.frame(variale = rownames(attStats(boruta))[attStats(boruta)['decision']!='Rejected'],
+                               decision = attStats(boruta)['decision'][attStats(boruta)['decision']!='Rejected'],
+                               empirity_imp = attStats(boruta)['normHits'][attStats(boruta)['decision']!='Rejected'],
+                               norm_imp = norm_100(attStats(boruta)['normHits'][attStats(boruta)['decision']!='Rejected']))
+                           
+                           
+                           
 
                         
 
