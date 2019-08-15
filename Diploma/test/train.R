@@ -488,6 +488,29 @@ vif_analysis <- vif_func(test_VIF, corr_var, thresh=10, trace=T)
 
 
 
+train_matrix <- Matrix(as.matrix(train[, -1]),sparse = TRUE)
+test_matrix <- Matrix(as.matrix(test),sparse = TRUE)
+
+train_matrix_s = scale(train_matrix) 
+test_matrix_s = scale(test_matrix)
+
+
+# parameters
+rfe_ctrl = rfeControl(functions = caretFuncs,
+                      method = "repeatedcv",
+                      repeats = 2,
+                      verbose = TRUE)
+
+# RFE
+RFE <- rfe(x = train_matrix_s,
+           y= as.factor(work_data_vs$Status) ,
+           sizes = seq(15,30,by=2),
+           metric = "Accuracy",
+           maximize=TRUE,
+           rfeControl = rfe_ctrl,
+           method = 'glmnet',
+           tuneGrid = tuneGrid,
+           trControl = control)
 
 
 
