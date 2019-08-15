@@ -885,3 +885,100 @@ ev_df <- ggtexttable(ev_df, rows = NULL,
                      theme = ttheme(
                        colnames.style = colnames_style(fill = "white"),
                        tbody.style = tbody_style(fill = get_palette("RdBu", 6))))
+                             
+                             
+                             
+                             
+ set.seed(7)
+library(mlbench)
+library(caret)
+numCores <- detectCores()
+registerDoParallel(numCores)
+# define the control using a random forest selection function
+control <- rfeControl(functions=rfFuncs, method="cv", number=5)
+# run the RFE algorithm
+results <- rfe(train_matrix_s, y, sizes = seq(15, 40, by=2), rfeControl=control)
+
+print(results)
+predictors(results)
+plot(results, type=c("g", "o"))                            
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
+                             
