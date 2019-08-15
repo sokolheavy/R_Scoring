@@ -564,8 +564,16 @@ print(results)
                              
                              
                              
-                             
-                             
+             set.seed(7)
+# load the library
+library(mlbench)
+library(caret)
+control <- rfeControl(functions=rfFuncs, method="cv", number=10)
+results <- rfe(PimaIndiansDiabetes[,1:8], y, 
+               sizes = sep(20,40), rfeControl=control)
+print(results)
+predictors(results)
+plot(results, type=c("g", "o"))      
                              
                              
                              
