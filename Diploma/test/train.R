@@ -398,6 +398,100 @@ bin_test <- bin_test[ ,norm_IV_var]
 
 
 
+install.packages('ROCR')
+library(ROCR)
+
+set.seed(123)
+div_part_1 <- createDataPartition(y = work_data_vs$Status, p = 0.7, list = F)
+train <- work_data_vs[div_part_1,] # 70% 
+test <- work_data_vs[-div_part_1,] # 30% 
+
+mat1 <- model.matrix(Status ~ . , data = train  ) # convert to numeric matrix
+mat2 <- model.matrix(Status ~ . , data = test  )  # convert to numeric matrix
+
+mod2 <-cv.glmnet(mat1, as.numeric(train$Status), alpha=1, family="binomial", type.measure = 'auc')
+
+
+# Apply model to testing dataset
+test$mod2_score <- predict(mod2, type='response', newx=mat2, s = 'lambda.min')
+mod2_pred <- prediction(test$mod2_score, test$Status)
+mod2_perf <- performance(mod2_pred,"tpr","fpr")
+
+ev_df_m2 <- data.frame(Gini = round(((slot(performance(mod2_pred, measure = "auc"),"y.values")[[1]])*2 - 1)*100, 2),
+                       AUC = round(performance(mod2_pred, measure = "auc")@y.values[[1]]*100, 2))
+
+ev_df_m2 <- ggtexttable(ev_df_m2, rows = NULL, theme = ttheme(colnames.style = colnames_style(color = "white", fill = "#39568CFF"), base_size = 10))
+
+acc2 <- 63.09
+Gini2 <- 81.54
+gini_plot <- ggplot(setNames(data.frame(mod2_perf@x.values, mod2_perf@y.values), c('x_val', 'y_val')), 
+                    aes(x = x_val, y = y_val), color=sort_criterion) + 
+  geom_line(aes(group=1), colour="#000099", size=1) + 
+  geom_abline(color="gray") +
+  ggtitle(paste("Gini=", round(Gini2,4), sep="")) +
+  xlab("False Positive Rate") +
+  ylab("True Positive Rate") +
+  theme_bw(base_size = 20) +
+  scale_x_continuous(breaks=seq(0,1,0.2)) +
+  scale_y_continuous(breaks=seq(0,1,0.2)) +
+  theme(legend.position ="none")
+
+png(filename="LASSO.png", res=150, width = 1000, height = 1000)
+plot(mod2)
+dev.off()
+
+
+log(mod2$lambda.min)
+
+coef(mod2, s=mod2$lambda.min)
+
+
+
+
+
+save(mod2, file = 'mod2.rda')
+
+#install.packages("Hmisc")
+library("Hmisc")
+#rcorr() - to compute the significance levels for pearson and spearman correlations
+
+res <- rcorr(as.matrix(work_data_vs))
+
+tableCorrMatrix <- function(corr, pval) {
+  ut <- upper.tri(corr)
+  data.frame(
+    row = rownames(corr)[row(corr)[ut]],
+    column = rownames(corr)[col(corr)[ut]],
+    cor  =(corr)[ut],
+    p = pval[ut]
+  )
+}
+
+corrtable<-tableCorrMatrix(res$r, res$P)
+
+#try to choose value that have significant corr
+resultCORR<-subset(corrtable,abs(cor)>0.8)
+corr_var <- unique(resultCORR[,1], resultCORR[,2])
+
+
+
+
+set.seed(123)
+div_part_1 <- createDataPartition(y = work_data_vs$Status, p = 0.3, list = F)
+test_VIF <- work_data_vs[div_part_1,]
+
+install.packages('fmsb')
+library(fmsb)
+library(caret)
+vif_analysis <- vif_func(test_VIF, corr_var, thresh=10, trace=T)
+
+
+
+
+
+
+
+
 
 
 
